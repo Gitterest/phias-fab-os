@@ -1,0 +1,36 @@
+{%- layout none -%}
+<div class="pf-wincontent">
+  <div class="pf-winproduct">
+    <div class="pf-winproduct__media">
+      {%- if product.featured_image -%}
+        <img src="{{ product.featured_image | image_url: width: 1100 }}" alt="{{ product.title | escape }}" loading="eager" decoding="async">
+      {%- endif -%}
+    </div>
+    <div class="pf-winproduct__meta">
+      <h2 class="pf-wintitle">{{ product.title }}</h2>
+      <div class="pf-winprice">{{ product.price | money }}
+      {% render 'pf-filetype-badges', product: product %}</div>
+
+      {%- if product.description != blank -%}
+        <div class="pf-windesc">{{ product.description }}</div>
+      {%- endif -%}
+
+      {% form 'product', product, id: "pf-product-form-" | append: product.id %}
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        <div class="pf-winrow">
+          <label class="pf-winlabel" for="pf-qty-{{ product.id }}">Qty</label>
+          <input id="pf-qty-{{ product.id }}" class="pf-wininput" type="number" name="quantity" value="1" min="1">
+        </div>
+        <div class="pf-winrow">
+          <button class="pf-winbtn" type="submit" data-addtocart>Add to cart</button>
+          <button class="pf-winbtn pf-winbtn--ghost" type="button" data-openapp="cart">Open cart</button>
+          <button class="pf-winbtn pf-winbtn--ghost" type="button" data-openapp="studio" data-title="{{ product.title | escape }}" data-url="{{ product.url }}" data-product-title="{{ product.title | escape }}">Open in Studio</button>
+        </div>
+      {% endform %}
+
+      <div class="pf-winfooter">
+        <small>Digital items are delivered after purchase via your account/orders page (and any download app you use).</small>
+      </div>
+    </div>
+  </div>
+</div>

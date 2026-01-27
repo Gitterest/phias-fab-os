@@ -1,0 +1,190 @@
+{%- liquid
+  assign start_menu = linklists[settings.start_menu]
+  assign desktop_collection = collections[settings.desktop_collection]
+  assign icon_limit = settings.desktop_icon_limit | default: 12
+-%}
+
+<div id="pf-os" class="pf-os" data-os data-accent="{{ settings.accent | escape }}">
+  <div class="pf-wallpaper">
+    {%- if settings.wallpaper != blank -%}
+      <img src="{{ settings.wallpaper | image_url: width: 2400 }}" alt="" loading="eager" decoding="async">
+    {%- endif -%}
+  </div>
+
+  <main class="pf-desktop" aria-label="Desktop">
+    <ol class="pf-icons" tabindex="0" aria-label="Desktop icons">
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="vault" aria-label="Open My Vault">
+        <div class="pf-iconimg"><span class="pf-emoji">🗄️</span></div>
+        <div class="pf-iconlabel">My Vault</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="collections" aria-label="Open Collections">
+        <div class="pf-iconimg"><span class="pf-emoji">🗂️</span></div>
+        <div class="pf-iconlabel">Collections</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="studio" aria-label="Open Studio">
+        <div class="pf-iconimg"><span class="pf-emoji">🧪</span></div>
+        <div class="pf-iconlabel">Studio</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="tools" aria-label="Open Tools">
+        <div class="pf-iconimg"><span class="pf-emoji">🧰</span></div>
+        <div class="pf-iconlabel">Tools</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="support" aria-label="Open Support">
+        <div class="pf-iconimg"><span class="pf-emoji">🛟</span></div>
+        <div class="pf-iconlabel">Support</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="cart" aria-label="Open Cart">
+        <div class="pf-iconimg"><span class="pf-emoji">🛒</span></div>
+        <div class="pf-iconlabel">Cart</div>
+      </li>
+      <li class="pf-icon" tabindex="0" role="button" data-osapp="search" aria-label="Open Search">
+        <div class="pf-iconimg"><span class="pf-emoji">🔎</span></div>
+        <div class="pf-iconlabel">Search</div>
+      </li>
+
+      {%- if desktop_collection and desktop_collection.products != blank -%}
+        {%- for product in desktop_collection.products limit: icon_limit -%}
+          {%- assign file_label = '' -%}
+          {%- for t in product.tags -%}
+            {%- if t contains 'file-' -%}
+              {%- case t -%}
+                {%- when 'file-svg' -%}{%- assign file_label = 'SVG' -%}
+                {%- when 'file-stl' -%}{%- assign file_label = 'STL' -%}
+                {%- when 'file-pdf' -%}{%- assign file_label = 'PDF' -%}
+                {%- when 'file-plr' -%}{%- assign file_label = 'PLR' -%}
+                {%- when 'file-ebook' -%}{%- assign file_label = 'E-BOOK' -%}
+                {%- when 'file-tutorial' -%}{%- assign file_label = 'TUTORIAL' -%}
+                {%- when 'file-art' -%}{%- assign file_label = 'ART' -%}
+                {%- when 'file-print' -%}{%- assign file_label = 'PRINT' -%}
+                {%- when 'file-template' -%}{%- assign file_label = 'TEMPLATE' -%}
+                {%- when 'file-wallpaper' -%}{%- assign file_label = 'WALLPAPER' -%}
+                {%- when 'file-bundle' -%}{%- assign file_label = 'BUNDLE' -%}
+              {%- endcase -%}
+              {%- break -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          <li class="pf-icon" tabindex="0" role="button"
+              data-url="{{ product.url }}"
+              data-title="{{ product.title | escape }}"
+              aria-label="Open {{ product.title | escape }}">
+            <div class="pf-iconimg">
+              {%- if product.featured_image -%}
+                {%- assign img = product.featured_image -%}
+                <img
+                  src="{{ img | image_url: width: 160 }}"
+                  width="{{ img.width }}"
+                  height="{{ img.height }}"
+                  alt="{{ product.title | escape }}"
+                  loading="lazy"
+                  decoding="async">
+              {%- else -%}
+                <span class="pf-emoji">📦</span>
+              {%- endif -%}
+
+              {%- if file_label != '' -%}
+                <span class="pf-iconbadge" aria-hidden="true">{{ file_label }}</span>
+              {%- endif -%}
+            </div>
+            <div class="pf-iconlabel">{{ product.title }}</div>
+          </li>
+        {%- endfor -%}
+      {%- endif -%}
+    </ol>
+  </main>
+
+  <nav class="pf-taskbar" aria-label="Taskbar">
+    <button class="pf-startbtn" type="button" data-start aria-label="Start" title="Start">
+      <span class="pf-startmark">⊞</span>
+      <span class="pf-starttext">{{ settings.brand_name | escape }}</span>
+    </button>
+
+    <button class="pf-taskbtn" type="button" data-osapp="search" aria-label="Search" title="Search">🔎</button>
+
+    <ol class="pf-tasks" data-tasks aria-label="Open windows"></ol>
+
+    <button class="pf-taskbtn" type="button" data-osapp="cart" aria-label="Cart" title="Cart">
+      🛒 <span class="pf-badge" data-cartbadge>0</span>
+    </button>
+
+    <div class="pf-clock" data-clock aria-label="Clock"></div>
+  </nav>
+
+  <div class="pf-startmenu" hidden data-startmenu role="menu" aria-label="Start menu">
+    <div class="pf-startmenu__inner">
+      <div class="pf-startmenu__left" aria-label="Programs">
+        {%- if start_menu.links.size > 0 -%}
+          <ul class="pf-menu">
+            {%- for link in start_menu.links -%}
+              <li class="pf-menu__item pf-menu__item--hasflyout" data-menuitem>
+                <button type="button" class="pf-menu__btn" data-flyoutbtn>
+                  <span class="pf-menu__label">{{ link.title }}</span>
+                  <span class="pf-menu__arrow">›</span>
+                </button>
+
+                {%- if link.links.size > 0 -%}
+                  <div class="pf-flyout" hidden data-flyout>
+                    <ul class="pf-menu pf-menu--flyout">
+                      {%- for sublink in link.links -%}
+                        <li class="pf-menu__item" data-menuitem>
+                          {%- if sublink.links.size > 0 -%}
+                            <button type="button" class="pf-menu__btn pf-menu__btn--sub" data-flyoutbtn data-url="{{ sublink.url }}" data-title="{{ sublink.title | escape }}">
+                              <span class="pf-menu__label">{{ sublink.title }}</span>
+                              <span class="pf-menu__arrow">›</span>
+                            </button>
+                            <div class="pf-flyout pf-flyout--third" hidden data-flyout>
+                              <ul class="pf-menu pf-menu--flyout">
+                                {%- for cmd in sublink.links -%}
+                                  <li class="pf-menu__item">
+                                    <button type="button" class="pf-menu__btn pf-menu__btn--cmd"
+                                            data-url="{{ cmd.url }}"
+                                            data-title="{{ cmd.title | escape }}">
+                                      <span class="pf-menu__label">{{ cmd.title }}</span>
+                                    </button>
+                                  </li>
+                                {%- endfor -%}
+                              </ul>
+                            </div>
+                          {%- else -%}
+                            <button type="button" class="pf-menu__btn pf-menu__btn--cmd"
+                                    data-url="{{ sublink.url }}"
+                                    data-title="{{ sublink.title | escape }}">
+                              <span class="pf-menu__label">{{ sublink.title }}</span>
+                            </button>
+                          {%- endif -%}
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                  </div>
+                {%- endif -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+        {%- else -%}
+          <div class="pf-startmenu__empty">
+            Add items to your Start menu navigation in Shopify.
+          </div>
+        {%- endif -%}
+      </div>
+
+      <div class="pf-startmenu__right" aria-label="Quick links">
+        <div class="pf-quick">
+          <button type="button" class="pf-quick__btn" data-osapp="vault">My Vault</button>
+          <button type="button" class="pf-quick__btn" data-osapp="storefront" data-url="/collections/all">Storefront</button>
+          <button type="button" class="pf-quick__btn" data-osapp="collections">Collections</button>
+          <button type="button" class="pf-quick__btn" data-osapp="support" data-url="/pages/support">Support</button>
+          <button type="button" class="pf-quick__btn" data-osapp="system" data-url="/account">Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pf-windowlayer" data-windowlayer aria-label="Windows layer"></div>
+</div>
+
+{% schema %}
+{
+  "name": "Desktop OS",
+  "settings": []
+}
+{% endschema %}

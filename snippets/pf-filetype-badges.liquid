@@ -1,0 +1,45 @@
+{%- comment -%}Phia’s Fab OS – File-type badges{%- endcomment -%}
+{%- assign _product = product -%}
+{%- if _product -%}
+  {%- assign file_tag = '' -%}
+  {%- for t in _product.tags -%}{%- if t contains 'file-' -%}{%- assign file_tag=t -%}{%- break -%}{%- endif -%}{%- endfor -%}
+  {%- assign file_label = '' -%}
+  {%- case file_tag -%}
+    {%- when 'file-svg' -%}{%- assign file_label='SVG' -%}
+    {%- when 'file-stl' -%}{%- assign file_label='STL' -%}
+    {%- when 'file-pdf' -%}{%- assign file_label='PDF' -%}
+    {%- when 'file-plr' -%}{%- assign file_label='PLR' -%}
+    {%- when 'file-ebook' -%}{%- assign file_label='E-BOOK' -%}
+    {%- when 'file-tutorial' -%}{%- assign file_label='TUTORIAL' -%}
+    {%- when 'file-art' -%}{%- assign file_label='ART' -%}
+    {%- when 'file-print' -%}{%- assign file_label='PRINTABLE' -%}
+    {%- when 'file-template' -%}{%- assign file_label='TEMPLATE' -%}
+    {%- when 'file-wallpaper' -%}{%- assign file_label='WALLPAPER' -%}
+    {%- when 'file-bundle' -%}{%- assign file_label='BUNDLE' -%}
+  {%- endcase -%}
+  {%- assign lic_label = '' -%}
+  {%- if _product.tags contains 'lic-commercial' -%}{%- assign lic_label='COMMERCIAL' -%}{%- endif -%}
+  {%- if _product.tags contains 'lic-personal' -%}{%- assign lic_label='PERSONAL' -%}{%- endif -%}
+  {%- if _product.tags contains 'lic-extended' -%}{%- assign lic_label='EXTENDED' -%}{%- endif -%}
+  {%- assign compat_labels = '' -%}
+  {%- for t in _product.tags -%}
+    {%- case t -%}
+      {%- when 'compat-cricut' -%}{%- assign compat_labels = compat_labels | append: 'CRICUT|' -%}
+      {%- when 'compat-silhouette' -%}{%- assign compat_labels = compat_labels | append: 'SILHOUETTE|' -%}
+      {%- when 'compat-3dprint' -%}{%- assign compat_labels = compat_labels | append: '3D PRINT|' -%}
+      {%- when 'compat-cnc' -%}{%- assign compat_labels = compat_labels | append: 'CNC/LASER|' -%}
+      {%- when 'compat-canva' -%}{%- assign compat_labels = compat_labels | append: 'CANVA|' -%}
+      {%- when 'compat-procreate' -%}{%- assign compat_labels = compat_labels | append: 'PROCREATE|' -%}
+      {%- when 'compat-ai' -%}{%- assign compat_labels = compat_labels | append: 'ILLUSTRATOR|' -%}
+      {%- when 'compat-ps' -%}{%- assign compat_labels = compat_labels | append: 'PHOTOSHOP|' -%}
+    {%- endcase -%}
+  {%- endfor -%}
+  {%- assign compat_arr = compat_labels | split: '|' -%}
+  {%- if file_label != '' or lic_label != '' or compat_labels != '' -%}
+    <div class="pf-badges" role="list" aria-label="File and license info">
+      {%- if file_label != '' -%}<span class="pf-badge pf-badge--file" role="listitem">{{ file_label }}</span>{%- endif -%}
+      {%- if lic_label != '' -%}<span class="pf-badge pf-badge--lic" role="listitem">{{ lic_label }}</span>{%- endif -%}
+      {%- for c in compat_arr -%}{%- assign c=c | strip -%}{%- if c != '' -%}<span class="pf-badge pf-badge--compat" role="listitem">{{ c }}</span>{%- endif -%}{%- endfor -%}
+    </div>
+  {%- endif -%}
+{%- endif -%}

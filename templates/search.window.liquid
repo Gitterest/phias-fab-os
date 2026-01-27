@@ -1,0 +1,25 @@
+{%- layout none -%}
+<div class="pf-wincontent">
+  <h2 class="pf-wintitle">Search</h2>
+  <form action="/search" method="get" class="pf-searchform" data-searchform>
+    <input class="pf-wininput" type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search Phia's Fab…" autocomplete="off" data-searchinput>
+    <button class="pf-winbtn" type="submit">Search</button>
+  </form>
+
+  {%- if search.performed -%}
+    <div class="pf-windesc" style="margin-top:10px;">Results for: <strong>{{ search.terms }}</strong></div>
+    <div class="pf-grid" style="margin-top:12px;">
+      {%- for item in search.results -%}
+        {%- if item.object_type == 'product' -%}
+          <button class="pf-card" type="button" data-open-url="{{ item.url }}" data-title="{{ item.title | escape }}">
+            {%- if item.featured_image -%}<img src="{{ item.featured_image | image_url: width: 520 }}" alt="" loading="lazy" decoding="async">{%- endif -%}
+            <div class="pf-card__meta">
+              <div class="pf-card__title">{{ item.title }}</div>
+              <div class="pf-card__price">{{ item.price | money }}</div>
+            </div>
+          </button>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</div>

@@ -1,0 +1,15 @@
+{
+  "general": {
+    "accessibility": {
+      "skip_to_content": "Skip to content"
+    }
+  },
+  "os": {
+    "start": "Start",
+    "search": "Search",
+    "cart": "Cart",
+    "close": "Close",
+    "minimize": "Minimize",
+    "restore": "Restore"
+  }
+}

@@ -1,0 +1,20 @@
+{%- layout none -%}
+<div class="pf-wincontent">
+  <div class="pf-winheader">
+    <h2 class="pf-wintitle">{{ collection.title }}</h2>
+    {%- if collection.description != blank -%}<div class="pf-windesc">{{ collection.description }}</div>{%- endif -%}
+  </div>
+  <div class="pf-grid">
+    {%- for product in collection.products -%}
+      <button class="pf-card" type="button" data-open-url="{{ product.url }}" data-title="{{ product.title | escape }}">
+        {%- if product.featured_image -%}
+          <img src="{{ product.featured_image | image_url: width: 520 }}" alt="" loading="lazy" decoding="async">
+        {%- endif -%}
+        <div class="pf-card__meta">
+          <div class="pf-card__title">{{ product.title }}</div>
+          <div class="pf-card__price">{{ product.price | money }}</div>
+        </div>
+      </button>
+    {%- endfor -%}
+  </div>
+</div>

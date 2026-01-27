@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Desktop OS",
+    "settings": [
+      {
+        "type": "text",
+        "id": "brand_name",
+        "label": "Brand name",
+        "default": "Phia's Fab"
+      },
+      {
+        "type": "color",
+        "id": "accent",
+        "label": "Accent color",
+        "default": "#00e5ff"
+      },
+      {
+        "type": "image_picker",
+        "id": "wallpaper",
+        "label": "Wallpaper"
+      },
+      {
+        "type": "link_list",
+        "id": "start_menu",
+        "label": "Start menu navigation",
+        "default": "main-menu"
+      },
+      {
+        "type": "collection",
+        "id": "desktop_collection",
+        "label": "Collection for desktop icons (products)"
+      },
+      {
+        "type": "range",
+        "id": "desktop_icon_limit",
+        "label": "Max product icons",
+        "min": 4,
+        "max": 36,
+        "step": 1,
+        "default": 12
+      }
+    ]
+  }
+]

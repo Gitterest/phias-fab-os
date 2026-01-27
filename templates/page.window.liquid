@@ -1,0 +1,55 @@
+{%- layout none -%}
+{%- if page.handle == 'vault' -%}
+  <div class="pf-wincontent">
+    <h2 class="pf-wintitle">My Vault</h2>
+
+    {%- if customer -%}
+      <div class="pf-windesc">Hi {{ customer.first_name | default: 'there' | escape }} — here’s a quick view of your recent purchases. For official downloads, use your Account (Shopify/Digital Downloads apps attach files there).</div>
+
+      <div class="pf-winrow">
+        <a class="pf-winbtn" href="/account" data-no-os>Open Account</a>
+        <a class="pf-winbtn pf-winbtn--ghost" href="/account/orders" data-no-os>Open Orders</a>
+      </div>
+
+      {%- assign order_count = customer.orders | size -%}
+      {%- if order_count > 0 -%}
+        <div class="pf-windesc" style="margin-top:10px;">Recent orders</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+          {%- for order in customer.orders limit: 5 -%}
+            <div style="padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.04);">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+                <div style="font-weight:800;">{{ order.name }}</div>
+                <div style="color:rgba(255,255,255,.70);font-size:12px;">{{ order.created_at | date: "%b %d, %Y" }}</div>
+              </div>
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+                {%- for li in order.line_items limit: 8 -%}
+                  {%- if li.product -%}
+                    <button type="button" class="pf-winbtn pf-winbtn--ghost" data-open-url="{{ li.product.url }}" data-title="{{ li.title | escape }}" style="justify-content:flex-start;">
+                      {{ li.title }}
+                    </button>
+                  {%- else -%}
+                    <div class="pf-windesc">• {{ li.title }}</div>
+                  {%- endif -%}
+                {%- endfor -%}
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- else -%}
+        <div class="pf-windesc" style="margin-top:10px;">No orders yet — once you purchase, your downloads will appear in your account.</div>
+      {%- endif -%}
+
+    {%- else -%}
+      <div class="pf-windesc">Log in to see your recent orders and get to your downloads.</div>
+      <div class="pf-winrow">
+        <a class="pf-winbtn" href="/account/login" data-no-os>Log in</a>
+        <a class="pf-winbtn pf-winbtn--ghost" href="/account/register" data-no-os>Create account</a>
+      </div>
+    {%- endif -%}
+  </div>
+{%- else -%}
+  <div class="pf-wincontent">
+    <h2 class="pf-wintitle">{{ page.title }}</h2>
+    <div class="pf-windesc">{{ page.content }}</div>
+  </div>
+{%- endif -%}
