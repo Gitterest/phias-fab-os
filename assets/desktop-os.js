@@ -2305,43 +2305,31 @@
 
 OS.registerApp("tools", {
     launch(){
-      const html = `
+      const tpl = document.querySelector("#pf-tools-template");
+      const html = tpl?.innerHTML?.trim() || `
         <div class="pf-wincontent">
           <h2 class="pf-wintitle">Tools</h2>
-          <div class="pf-windesc">Utilities for files & workflow (converter, validator, compressor).</div>
+          <div class="pf-windesc">Paid tools unlock via purchase.</div>
           <div class="pf-grid" style="margin-top:12px;">
-            <button class="pf-card pf-toolcard" type="button" data-openapp="compressor" aria-label="Open Image Compressor">
+            <div class="pf-card pf-toolcard" aria-live="polite">
               <div class="pf-card__meta pf-toolcard__meta">
-                <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🗜️</span></div>
+                <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🧰</span></div>
                 <div class="pf-toolcard__text">
-                  <div class="pf-card__title">Image Compressor</div>
-                  <div class="pf-card__price">Compress JPG/PNG/WEBP locally.</div>
+                  <div class="pf-card__title">Tools UI not loaded.</div>
+                  <div class="pf-card__price">Check theme template markup.</div>
                 </div>
               </div>
-            </button>
-            <button class="pf-card pf-toolcard" type="button" data-openapp="converter" aria-label="Open File Converter">
-              <div class="pf-card__meta pf-toolcard__meta">
-                <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🔁</span></div>
-                <div class="pf-toolcard__text">
-                  <div class="pf-card__title">File Converter</div>
-                  <div class="pf-card__price">Convert PNG/JPG/WEBP/SVG locally.</div>
-                </div>
-              </div>
-            </button>
-            <button class="pf-card pf-toolcard" type="button" disabled aria-label="Format Validator (coming soon)">
-              <div class="pf-card__meta pf-toolcard__meta">
-                <div class="pf-toolicon pf-toolicon--disabled" aria-hidden="true"><span class="pf-toolicon__glyph">✅</span></div>
-                <div class="pf-toolcard__text">
-                  <div class="pf-card__title">Format Validator</div>
-                  <div class="pf-card__price">Coming next</div>
-                </div>
-              </div>
-            </button>
+            </div>
           </div>
         </div>`;
       const winId = createWindow({ title:"Tools", html, appId:"tools" });
       const b = windows.get(winId)?.el?.querySelector("[data-body]");
-      if (b) bindWindowInternalActions(b);
+      if (b) {
+        bindWindowInternalActions(b);
+        if (window.PFTools && typeof window.PFTools.init === "function") {
+          window.PFTools.init(b);
+        }
+      }
       return winId;
     }
   });

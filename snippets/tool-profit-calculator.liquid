@@ -1,0 +1,55 @@
+{% assign tool_product = all_products[settings.tool_profit_calculator_product] %}
+<div class="pf-tool" data-tool="profit-calculator">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">💹</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.profit_calculator.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.profit_calculator.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_profit_calculator' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_profit_calculator' %}
+    <div class="pf-tool__body">
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-price">{{ 'tools.profit_calculator.price_label' | t }}</label>
+          <input id="profit-price" class="pf-tool__input" type="number" min="0" step="0.01" data-profit-price>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-cost">{{ 'tools.profit_calculator.cost_label' | t }}</label>
+          <input id="profit-cost" class="pf-tool__input" type="number" min="0" step="0.01" data-profit-cost>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-shipping">{{ 'tools.profit_calculator.shipping_label' | t }}</label>
+          <input id="profit-shipping" class="pf-tool__input" type="number" min="0" step="0.01" data-profit-shipping>
+        </div>
+      </div>
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-fee">{{ 'tools.profit_calculator.payment_fee_label' | t }}</label>
+          <input id="profit-fee" class="pf-tool__input" type="number" min="0" step="0.1" value="2.9" data-profit-fee>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-platform">{{ 'tools.profit_calculator.platform_fee_label' | t }}</label>
+          <input id="profit-platform" class="pf-tool__input" type="number" min="0" step="0.1" value="0" data-profit-platform>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="profit-fixed">{{ 'tools.profit_calculator.fixed_fee_label' | t }}</label>
+          <input id="profit-fixed" class="pf-tool__input" type="number" min="0" step="0.01" value="0.30" data-profit-fixed>
+        </div>
+      </div>
+      <div class="pf-tool__results" aria-live="polite">
+        <div><strong>{{ 'tools.profit_calculator.fees_label' | t }}</strong> <span data-profit-fees>$0.00</span></div>
+        <div><strong>{{ 'tools.profit_calculator.net_label' | t }}</strong> <span data-profit-net>$0.00</span></div>
+        <div><strong>{{ 'tools.profit_calculator.margin_label' | t }}</strong> <span data-profit-margin>0%</span></div>
+      </div>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'profit-calculator', tool_title: 'tools.profit_calculator.title' | t, product: tool_product %}
+  {% endif %}
+</div>

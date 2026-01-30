@@ -1,0 +1,35 @@
+{% assign tool_product = all_products[settings.tool_svg_optimizer_product] %}
+<div class="pf-tool" data-tool="svg-optimizer">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🧼</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.svg_optimizer.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.svg_optimizer.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_svg_optimizer' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_svg_optimizer' %}
+    <div class="pf-tool__body">
+      <label class="pf-tool__label" for="svg-optimizer-input">{{ 'tools.svg_optimizer.input_label' | t }}</label>
+      <textarea id="svg-optimizer-input" class="pf-tool__textarea" rows="7" data-svg-input placeholder="<svg>...</svg>"></textarea>
+      <div class="pf-tool__row">
+        <label class="pf-tool__checkbox"><input type="checkbox" data-svg-strip-metadata checked> {{ 'tools.svg_optimizer.strip_metadata' | t }}</label>
+        <button class="pf-winbtn" type="button" data-svg-optimize>{{ 'tools.svg_optimizer.action' | t }}</button>
+      </div>
+      <label class="pf-tool__label" for="svg-optimizer-output">{{ 'tools.svg_optimizer.output_label' | t }}</label>
+      <textarea id="svg-optimizer-output" class="pf-tool__textarea" rows="6" data-svg-output readonly></textarea>
+      <div class="pf-tool__row">
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-svg-copy>{{ 'tools.common.copy' | t }}</button>
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-svg-download>{{ 'tools.svg_optimizer.download' | t }}</button>
+        <span class="pf-tool__status" data-svg-status>{{ 'tools.common.status_ready' | t }}</span>
+      </div>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'svg-optimizer', tool_title: 'tools.svg_optimizer.title' | t, product: tool_product %}
+  {% endif %}
+</div>
