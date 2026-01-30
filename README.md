@@ -1,4 +1,4 @@
-# Phia’s Fab OS – v2.3.0 ABCD+ (Win7 Visual + Apps + Studio Upgrade)
+# Phia’s Fab OS – v2.3.0 ABCD+ (XP Luna Visual + Apps + Studio Upgrade)
 
 Includes:
 A) File-type badges on product windows (tags → badges)
@@ -27,7 +27,7 @@ Protected routes (/account, /checkout, /cart, etc.) always open normally (never 
 
 
 ## v2.3.0 additions
-- Windows 7 (Aero) visual pass (taskbar, start menu, window chrome)
-- Added Maximize + Win7-style snap (drag to edges)
+- Windows XP (Luna) visual pass (taskbar, start menu, window chrome)
+- Added Maximize + snap behavior (drag to edges)
 - Added File Manager + Settings apps
 - Upgraded Studio Text→SVG into a richer SVG designer (fonts, stroke/fill, letter spacing, curve text, presets)

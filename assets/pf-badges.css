@@ -1,8 +1,8 @@
 .pf-badges{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;}
-.pf-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:rgba(255,255,255,.92);user-select:none;}
-.pf-badge--file{border-color:rgba(0,255,255,.22);}
-.pf-badge--lic{border-color:rgba(255,0,255,.22);}
-.pf-badge--compat{border-color:rgba(120,255,120,.22);}
+.pf-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:2px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border:1px solid #9aa8bd;background:#f5f7fb;color:#1b2b3b;user-select:none;}
+.pf-badge--file{border-color:#2a6bd6;}
+.pf-badge--lic{border-color:#7a4fb0;}
+.pf-badge--compat{border-color:#2f8a4e;}
 
 /* Desktop icon badge */
 .pf-iconimg{position:relative;}
@@ -11,14 +11,13 @@
   right:6px;
   bottom:6px;
   padding:2px 6px;
-  border-radius:999px;
+  border-radius:2px;
   font-size:10px;
   letter-spacing:.08em;
   text-transform:uppercase;
   font-weight:800;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(0,0,0,.42);
-  color:rgba(255,255,255,.92);
-  backdrop-filter: blur(6px);
+  border:1px solid #1d2f45;
+  background:#f5d36b;
+  color:#1b2b3b;
   pointer-events:none;
 }
