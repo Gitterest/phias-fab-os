@@ -417,6 +417,7 @@
     root.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeAll();
+        if (modal) modal.hidden = true;
       }
     });
   };
