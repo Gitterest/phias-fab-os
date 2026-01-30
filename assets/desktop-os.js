@@ -1780,6 +1780,529 @@
     }
   });
 
+  OS.registerApp("converter", {
+    launch(){
+      // Single-instance behavior: focus existing window if already open.
+      for (const [id, w] of windows.entries()){
+        if (w?.appId === "converter"){
+          if (w.minimized) restoreWindow(id);
+          setActive(id);
+          return id;
+        }
+      }
+
+      const html = `
+        <div class="pf-wincontent pf-converter" data-converter>
+          <h2 class="pf-wintitle">File Converter</h2>
+          <div class="pf-windesc">Convert images locally (PNG/JPG/WEBP/SVG → PNG/JPG/WEBP). No uploads.</div>
+
+          <div class="pf-converter__layout" style="margin-top:12px;">
+            <div class="pf-converter__col">
+              <div class="pf-converter__panel">
+                <div class="pf-windesc" style="margin-bottom:8px;">Input</div>
+
+                <div class="pf-converter__drop" data-drop role="button" tabindex="0" aria-label="Drop file here or browse">
+                  <div style="font-size:13px;font-weight:650;margin-bottom:4px;">Drop a file here</div>
+                  <div class="pf-windesc" style="margin:0 0 8px 0;">PNG, JPG/JPEG, WEBP, SVG</div>
+                  <div class="pf-winrow" style="margin:0;gap:8px;flex-wrap:wrap;">
+                    <input class="pf-wininput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-file>
+                    <button class="pf-winbtn pf-winbtn--ghost" type="button" data-clear disabled>Clear</button>
+                  </div>
+                </div>
+
+                <div class="pf-windesc" style="margin:12px 0 8px 0;">Options</div>
+
+                <div class="pf-winrow" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                  <div style="min-width:200px;flex:1;">
+                    <label class="pf-winlabel">Quality: <strong data-qval>90</strong></label>
+                    <input class="pf-wininput" type="range" min="0" max="100" value="90" data-quality>
+                    <div class="pf-windesc" style="margin-top:6px;">Quality affects JPG/WEBP only.</div>
+                  </div>
+                  <div style="width:160px;min-width:160px;">
+                    <label class="pf-winlabel">Output format</label>
+                    <select class="pf-wininput" data-format>
+                      <option value="image/png">PNG</option>
+                      <option value="image/jpeg">JPG</option>
+                      <option value="image/webp">WEBP</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="pf-winrow" style="gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px;">
+                  <div style="width:160px;min-width:160px;">
+                    <label class="pf-winlabel">JPG background</label>
+                    <input class="pf-wininput" type="color" value="#ffffff" data-bg>
+                    <div class="pf-windesc" style="margin-top:6px;">Used only when output is JPG.</div>
+                  </div>
+                </div>
+
+                <div class="pf-converter__resize">
+                  <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 8px 0;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1b2b3b;">
+                      <input type="checkbox" data-resize> Resize
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1b2b3b;">
+                      <input type="checkbox" data-keep checked> Maintain aspect ratio
+                    </label>
+                  </div>
+                  <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;align-items:flex-end;margin:0;">
+                    <div style="width:140px;">
+                      <label class="pf-winlabel">Width</label>
+                      <input class="pf-wininput" type="number" min="1" max="12000" step="1" data-w disabled>
+                    </div>
+                    <div style="width:140px;">
+                      <label class="pf-winlabel">Height</label>
+                      <input class="pf-wininput" type="number" min="1" max="12000" step="1" data-h disabled>
+                    </div>
+                    <button class="pf-winbtn" type="button" data-run disabled>Convert</button>
+                  </div>
+                </div>
+
+                <div class="pf-winrow" style="justify-content:flex-end;margin-top:10px;">
+                  <button class="pf-winbtn" type="button" data-download disabled>Download</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pf-converter__col">
+              <div class="pf-converter__panel">
+                <div class="pf-windesc" style="margin-bottom:8px;">Preview</div>
+                <div class="pf-converter__previews">
+                  <div class="pf-converter__previewbox">
+                    <div style="font-size:13px;font-weight:650;margin-bottom:6px;">Original</div>
+                    <div class="pf-converter__imgwrap">
+                      <img class="pf-converter__img" alt="Original file preview" data-origimg>
+                    </div>
+                    <div class="pf-converter__stats" data-origstats>—</div>
+                  </div>
+                  <div class="pf-converter__previewbox">
+                    <div style="font-size:13px;font-weight:650;margin-bottom:6px;">Converted</div>
+                    <div class="pf-converter__imgwrap">
+                      <img class="pf-converter__img" alt="Converted file preview" data-outimg>
+                    </div>
+                    <div class="pf-converter__stats" data-outstats>—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pf-statusbar" role="status" aria-live="polite" data-status>Ready.</div>
+        </div>`;
+
+      const winId = createWindow({ title:"File Converter", html, appId:"converter" });
+      const w = windows.get(winId);
+      const body = w?.el?.querySelector("[data-body]");
+      const appRoot = body?.querySelector("[data-converter]");
+      if (!body || !appRoot) return winId;
+
+      const statusEl = appRoot.querySelector("[data-status]");
+      const drop = appRoot.querySelector("[data-drop]");
+      const fileIn = appRoot.querySelector("[data-file]");
+      const clearBtn = appRoot.querySelector("[data-clear]");
+      const qIn = appRoot.querySelector("[data-quality]");
+      const qVal = appRoot.querySelector("[data-qval]");
+      const fmtSel = appRoot.querySelector("[data-format]");
+      const bgIn = appRoot.querySelector("[data-bg]");
+      const resizeChk = appRoot.querySelector("[data-resize]");
+      const keepChk = appRoot.querySelector("[data-keep]");
+      const wIn = appRoot.querySelector("[data-w]");
+      const hIn = appRoot.querySelector("[data-h]");
+      const runBtn = appRoot.querySelector("[data-run]");
+      const dlBtn = appRoot.querySelector("[data-download]");
+      const origImg = appRoot.querySelector("[data-origimg]");
+      const outImg = appRoot.querySelector("[data-outimg]");
+      const origStats = appRoot.querySelector("[data-origstats]");
+      const outStats = appRoot.querySelector("[data-outstats]");
+
+      const listeners = [];
+      const on = (el, ev, fn, opts) => {
+        if (!el) return;
+        el.addEventListener(ev, fn, opts);
+        listeners.push(() => el.removeEventListener(ev, fn, opts));
+      };
+
+      let origFile = null;
+      let origUrl = "";
+      let outUrl = "";
+      let outBlob = null;
+      let decoded = null; // ImageBitmap or HTMLImageElement
+      let origW = 0;
+      let origH = 0;
+      let ratio = 1;
+      let job = 0;
+      let isSvg = false;
+      let svgRenderUrl = "";
+
+      function setStatus(msg, kind){
+        if (!statusEl) return;
+        statusEl.textContent = String(msg || "Ready.");
+        statusEl.classList.toggle("pf-statusbar--error", kind === "error");
+      }
+
+      function fmtBytes(n){
+        const b = Number(n) || 0;
+        if (b < 1024) return `${b} B`;
+        const kb = b / 1024;
+        if (kb < 1024) return `${kb.toFixed(1)} KB`;
+        const mb = kb / 1024;
+        return `${mb.toFixed(2)} MB`;
+      }
+
+      function safeStem(name){
+        const base = String(name || "file").replace(/\.[^.]+$/,"");
+        const cleaned = base.replace(/[^a-zA-Z0-9_\- ]+/g, "").trim().replace(/\s+/g, "_");
+        return (cleaned || "file").slice(0, 48);
+      }
+
+      function extForMime(m){
+        if (m === "image/png") return "png";
+        if (m === "image/webp") return "webp";
+        return "jpg";
+      }
+
+      function revokeUrl(u){
+        if (!u) return;
+        try { URL.revokeObjectURL(u); } catch {}
+      }
+
+      function sanitizeHexColor(raw, fallback){
+        const s = String(raw || "").trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+        if (/^#[0-9a-fA-F]{3}$/.test(s)) return s.toLowerCase();
+        return fallback;
+      }
+
+      function stripInvalidXmlChars(s){
+        return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+      }
+
+      function sanitizeSvgText(svgText){
+        const src = stripInvalidXmlChars(svgText);
+        const p = new DOMParser();
+        const doc = p.parseFromString(src, "image/svg+xml");
+        if (doc.getElementsByTagName("parsererror").length) throw new Error("SVG is not valid XML.");
+        const root = doc.documentElement;
+        if (!root || root.nodeName.toLowerCase() !== "svg") throw new Error("Root element must be <svg>.");
+
+        // Remove scripts/foreignObject and inline event handlers.
+        root.querySelectorAll("script, foreignObject").forEach(n => n.remove());
+        root.querySelectorAll("*").forEach(el => {
+          Array.from(el.attributes || []).forEach(a => {
+            const name = a.name || "";
+            const val = String(a.value || "");
+            if (/^on/i.test(name)) el.removeAttribute(name);
+            if ((name === "href" || name === "xlink:href") && /^javascript:/i.test(val)) el.removeAttribute(name);
+          });
+        });
+
+        // Ensure namespaces
+        if (!root.getAttribute("xmlns")) root.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        if (!root.getAttribute("xmlns:xlink")) root.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+        return new XMLSerializer().serializeToString(root);
+      }
+
+      function parseSvgSize(svgMarkup){
+        const p = new DOMParser();
+        const doc = p.parseFromString(svgMarkup, "image/svg+xml");
+        const root = doc.documentElement;
+        const vb = root.getAttribute("viewBox");
+        if (vb){
+          const parts = vb.trim().split(/[\s,]+/).map(Number);
+          if (parts.length === 4 && parts.every(Number.isFinite) && parts[2] > 0 && parts[3] > 0){
+            return { w: Math.round(parts[2]), h: Math.round(parts[3]) };
+          }
+        }
+        const wAttr = root.getAttribute("width");
+        const hAttr = root.getAttribute("height");
+        const w = wAttr ? parseFloat(String(wAttr)) : NaN;
+        const h = hAttr ? parseFloat(String(hAttr)) : NaN;
+        if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0){
+          return { w: Math.round(w), h: Math.round(h) };
+        }
+        return { w: 1024, h: 1024 };
+      }
+
+      function resetOutput(){
+        if (outImg) outImg.removeAttribute("src");
+        if (outStats) outStats.textContent = "—";
+        if (dlBtn) dlBtn.disabled = true;
+        outBlob = null;
+        if (outUrl){ revokeUrl(outUrl); outUrl = ""; }
+      }
+
+      function resetAll(){
+        job += 1;
+        resetOutput();
+        if (origImg) origImg.removeAttribute("src");
+        if (origStats) origStats.textContent = "—";
+        if (origUrl){ revokeUrl(origUrl); origUrl = ""; }
+        if (svgRenderUrl){ revokeUrl(svgRenderUrl); svgRenderUrl = ""; }
+        origFile = null;
+        origW = 0; origH = 0; ratio = 1;
+        isSvg = false;
+        try { decoded?.close?.(); } catch {}
+        decoded = null;
+        if (runBtn) runBtn.disabled = true;
+        if (clearBtn) clearBtn.disabled = true;
+        if (wIn) wIn.value = "";
+        if (hIn) hIn.value = "";
+        setStatus("Ready.");
+      }
+
+      function clampInt(n, min, max, fallback){
+        const x = Math.round(Number(n));
+        if (!Number.isFinite(x)) return fallback;
+        return Math.max(min, Math.min(max, x));
+      }
+
+      function currentTargetSize(){
+        const resizeOn = Boolean(resizeChk?.checked);
+        const tw = resizeOn ? clampInt(wIn?.value, 1, 12000, origW) : origW;
+        const th = resizeOn ? clampInt(hIn?.value, 1, 12000, origH) : origH;
+        return { tw, th };
+      }
+
+      function syncResizeEnabled(){
+        const onResize = Boolean(resizeChk?.checked);
+        if (wIn) wIn.disabled = !onResize;
+        if (hIn) hIn.disabled = !onResize;
+      }
+
+      let syncing = false;
+      function syncOtherDimension(changed){
+        if (syncing) return;
+        if (!keepChk?.checked) return;
+        if (!resizeChk?.checked) return;
+        if (!ratio || !Number.isFinite(ratio) || ratio <= 0) return;
+        syncing = true;
+        if (changed === "w"){
+          const tw = clampInt(wIn?.value, 1, 12000, origW);
+          if (hIn) hIn.value = String(clampInt(Math.round(tw / ratio), 1, 12000, origH));
+        } else {
+          const th = clampInt(hIn?.value, 1, 12000, origH);
+          if (wIn) wIn.value = String(clampInt(Math.round(th * ratio), 1, 12000, origW));
+        }
+        syncing = false;
+      }
+
+      async function decodeRasterUrl(url){
+        if (window.createImageBitmap){
+          const res = await fetch(url);
+          const blob = await res.blob();
+          return await createImageBitmap(blob);
+        }
+        return await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Image decode failed."));
+          img.src = url;
+        });
+      }
+
+      async function decodeFile(file){
+        if (window.createImageBitmap){
+          try { return await createImageBitmap(file); } catch {}
+        }
+        return await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Image decode failed."));
+          img.src = origUrl;
+        });
+      }
+
+      function setFile(file){
+        resetAll();
+        if (!file) return;
+        const type = String(file.type || "");
+        isSvg = type === "image/svg+xml" || /\.svg$/i.test(file.name || "");
+        const okType = ["image/png","image/jpeg","image/webp","image/svg+xml"].includes(type) || isSvg;
+        if (!okType){
+          setStatus("Error: Unsupported file type.", "error");
+          return;
+        }
+        origFile = file;
+        origUrl = URL.createObjectURL(file);
+        if (clearBtn) clearBtn.disabled = false;
+        setStatus("Loading file…");
+
+        const myJob = ++job;
+        (async () => {
+          if (isSvg){
+            const text = await file.text();
+            const sanitized = sanitizeSvgText(text);
+            const { w, h } = parseSvgSize(sanitized);
+            origW = w;
+            origH = h;
+            ratio = origW / origH;
+            if (wIn) wIn.value = String(origW);
+            if (hIn) hIn.value = String(origH);
+
+            const blob = new Blob([sanitized], { type: "image/svg+xml;charset=utf-8" });
+            svgRenderUrl = URL.createObjectURL(blob);
+            if (origImg) origImg.src = svgRenderUrl;
+            if (origStats) origStats.textContent = `${fmtBytes(file.size)} • image/svg+xml • ${origW}×${origH}`;
+            decoded = await decodeRasterUrl(svgRenderUrl);
+          } else {
+            if (origImg) origImg.src = origUrl;
+            if (origStats) origStats.textContent = `${fmtBytes(file.size)} • ${type || "image"}`;
+            decoded = await decodeFile(file);
+            origW = decoded.width || decoded.naturalWidth || 0;
+            origH = decoded.height || decoded.naturalHeight || 0;
+            if (!origW || !origH) throw new Error("Invalid image dimensions.");
+            ratio = origW / origH;
+            if (wIn) wIn.value = String(origW);
+            if (hIn) hIn.value = String(origH);
+            if (origStats) origStats.textContent = `${fmtBytes(file.size)} • ${type || "image"} • ${origW}×${origH}`;
+          }
+
+          if (myJob !== job) return;
+          syncResizeEnabled();
+          if (runBtn) runBtn.disabled = false;
+          setStatus("Ready. Click Convert.");
+        })().catch(() => {
+          if (myJob !== job) return;
+          setStatus("Error: Could not read file.", "error");
+          resetAll();
+        });
+      }
+
+      function toBlob(canvas, mime, q){
+        return new Promise((resolve, reject) => {
+          try{
+            if (mime === "image/png") canvas.toBlob(b => b ? resolve(b) : reject(new Error("PNG export failed.")), mime);
+            else canvas.toBlob(b => b ? resolve(b) : reject(new Error("Export failed.")), mime, q);
+          }catch(e){
+            reject(e);
+          }
+        });
+      }
+
+      function nextOutName(mime){
+        const key = "pf_fileconv_counter_v1";
+        let n = 1;
+        try{
+          const raw = localStorage.getItem(key);
+          const parsed = Number(raw);
+          if (Number.isFinite(parsed) && parsed >= 1) n = parsed;
+        }catch{}
+        try{ localStorage.setItem(key, String(n + 1)); }catch{}
+        return `converted_${String(n).padStart(3,"0")}.${extForMime(mime)}`;
+      }
+
+      async function runConvert(){
+        if (!origFile || !decoded) return;
+        resetOutput();
+
+        const myJob = ++job;
+        const mime = String(fmtSel?.value || "image/png");
+        const q = Math.max(0, Math.min(1, Number(qIn?.value || 90) / 100));
+        const { tw, th } = currentTargetSize();
+        if (!tw || !th){
+          setStatus("Error: Invalid output size.", "error");
+          return;
+        }
+        if (tw * th > 70_000_000){
+          setStatus("Error: Output image is too large.", "error");
+          return;
+        }
+
+        setStatus("Converting…");
+        try{
+          const canvas = document.createElement("canvas");
+          canvas.width = tw;
+          canvas.height = th;
+          const ctx = canvas.getContext("2d", { alpha: mime !== "image/jpeg" });
+          if (!ctx) throw new Error("Canvas unavailable.");
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+
+          if (mime === "image/jpeg"){
+            ctx.fillStyle = sanitizeHexColor(bgIn?.value, "#ffffff");
+            ctx.fillRect(0, 0, tw, th);
+          }
+
+          ctx.drawImage(decoded, 0, 0, tw, th);
+          const blob = await toBlob(canvas, mime, q);
+          if (myJob !== job) return;
+
+          outBlob = blob;
+          outUrl = URL.createObjectURL(blob);
+          if (outImg) outImg.src = outUrl;
+
+          const origSize = origFile.size || 0;
+          const outSize = blob.size || 0;
+          const saved = origSize > 0 ? Math.max(0, (1 - outSize / origSize) * 100) : 0;
+          if (outStats) outStats.textContent = `${fmtBytes(outSize)} • ${mime} • ${tw}×${th} • Saved ${saved.toFixed(1)}%`;
+          if (dlBtn) dlBtn.disabled = false;
+          setStatus("Done.");
+        }catch{
+          if (myJob !== job) return;
+          setStatus("Error: Convert failed.", "error");
+          resetOutput();
+        }
+      }
+
+      function download(){
+        if (!outBlob) return;
+        const mime = String(fmtSel?.value || "image/png");
+        const filename = nextOutName(mime);
+        const url = URL.createObjectURL(outBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => revokeUrl(url), 1500);
+        setStatus(`Saved: ${filename}`);
+      }
+
+      // UI wiring
+      on(drop, "click", () => fileIn?.click());
+      on(drop, "keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileIn?.click(); } });
+      on(drop, "dragover", (e) => { e.preventDefault(); drop?.classList.add("pf-converter__drop--over"); });
+      on(drop, "dragleave", () => drop?.classList.remove("pf-converter__drop--over"));
+      on(drop, "drop", (e) => {
+        e.preventDefault();
+        drop?.classList.remove("pf-converter__drop--over");
+        const f = e.dataTransfer?.files?.[0];
+        if (f) setFile(f);
+      });
+      on(fileIn, "change", () => {
+        const f = fileIn.files?.[0];
+        if (f) setFile(f);
+      });
+      on(clearBtn, "click", resetAll);
+
+      on(qIn, "input", () => { if (qVal) qVal.textContent = String(qIn.value); resetOutput(); });
+      on(fmtSel, "change", () => { resetOutput(); setStatus("Ready. Click Convert."); });
+      on(bgIn, "input", () => { if ((fmtSel?.value || "") === "image/jpeg") resetOutput(); });
+      on(resizeChk, "change", () => { syncResizeEnabled(); resetOutput(); setStatus("Ready. Click Convert."); });
+      on(keepChk, "change", () => { resetOutput(); setStatus("Ready. Click Convert."); });
+      on(wIn, "input", () => { syncOtherDimension("w"); resetOutput(); });
+      on(hIn, "input", () => { syncOtherDimension("h"); resetOutput(); });
+
+      on(runBtn, "click", runConvert);
+      on(dlBtn, "click", download);
+
+      // cleanup on close
+      w.cleanup = () => {
+        listeners.splice(0).forEach(off => { try { off(); } catch {} });
+        resetAll();
+      };
+
+      // Initialize
+      if (qVal && qIn) qVal.textContent = String(qIn.value);
+      syncResizeEnabled();
+      setStatus("Ready.");
+      return winId;
+    }
+  });
+
 OS.registerApp("tools", {
     launch(){
       const html = `
@@ -1796,12 +2319,12 @@ OS.registerApp("tools", {
                 </div>
               </div>
             </button>
-            <button class="pf-card pf-toolcard" type="button" disabled aria-label="File Converter (coming soon)">
+            <button class="pf-card pf-toolcard" type="button" data-openapp="converter" aria-label="Open File Converter">
               <div class="pf-card__meta pf-toolcard__meta">
-                <div class="pf-toolicon pf-toolicon--disabled" aria-hidden="true"><span class="pf-toolicon__glyph">🔁</span></div>
+                <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🔁</span></div>
                 <div class="pf-toolcard__text">
                   <div class="pf-card__title">File Converter</div>
-                  <div class="pf-card__price">Coming next</div>
+                  <div class="pf-card__price">Convert PNG/JPG/WEBP/SVG locally.</div>
                 </div>
               </div>
             </button>

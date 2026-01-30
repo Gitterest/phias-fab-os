@@ -288,6 +288,54 @@ button{font-family:inherit}
   .pf-compressor__previews{grid-template-columns:1fr;}
 }
 
+/* File Converter app layout (mirrors compressor) */
+.pf-converter__layout{
+  display:grid;
+  grid-template-columns: minmax(280px, 360px) minmax(260px, 1fr);
+  gap:12px;
+  align-items:start;
+}
+.pf-converter__panel{
+  border:1px solid #c3cbd9;
+  border-radius:2px;
+  padding:12px;
+  background:#f5f7fb;
+}
+.pf-converter__drop{
+  border:1px solid #9aa8bd;
+  background:#ffffff;
+  padding:10px;
+  border-radius:2px;
+}
+.pf-converter__drop:focus{outline:2px solid rgba(42,107,214,.35); outline-offset:1px;}
+.pf-converter__drop--over{border-color:#2a6bd6; background:#e7f0ff;}
+.pf-converter__previews{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.pf-converter__imgwrap{
+  border:1px solid #c3cbd9;
+  background:#ffffff;
+  padding:8px;
+}
+.pf-converter__img{
+  display:block;
+  width:100%;
+  max-height:240px;
+  object-fit:contain;
+  background:#ffffff;
+}
+.pf-converter__stats{
+  margin-top:8px;
+  font-size:12px;
+  color:#526173;
+}
+@media (max-width: 760px){
+  .pf-converter__layout{grid-template-columns:1fr;}
+  .pf-converter__previews{grid-template-columns:1fr;}
+}
+
 .pf-winproduct{display:grid; grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr); gap:14px;}
 .pf-winproduct__media img{width:100%; border-radius:0; display:block;}
 .pf-winfooter{margin-top:12px; color:#526173; font-size:12px;}
