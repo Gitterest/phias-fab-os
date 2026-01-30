@@ -11,8 +11,10 @@
     </title>
     {{ content_for_header }}
     {{ 'desktop-os.css' | asset_url | stylesheet_tag }}
+    {{ 'tools.css' | asset_url | stylesheet_tag }}
     {{ 'pf-badges.css' | asset_url | stylesheet_tag }}
     <script src="{{ 'desktop-os.js' | asset_url }}" defer></script>
+    <script src="{{ 'tools.js' | asset_url }}" defer></script>
   </head>
   <body>
     {{ content_for_layout }}

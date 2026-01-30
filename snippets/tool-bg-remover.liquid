@@ -1,0 +1,44 @@
+{% assign tool_product = all_products[settings.tool_bg_remover_product] %}
+<div class="pf-tool" data-tool="bg-remover">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🪄</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.bg_remover.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.bg_remover.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_bg_remover' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_bg_remover' %}
+    <div class="pf-tool__body">
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="bg-remover-input">{{ 'tools.bg_remover.input_label' | t }}</label>
+          <input id="bg-remover-input" class="pf-tool__input" type="file" accept="image/*" data-bg-input>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="bg-remover-color">{{ 'tools.bg_remover.color_label' | t }}</label>
+          <input id="bg-remover-color" type="color" value="#ffffff" data-bg-color>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="bg-remover-tolerance">{{ 'tools.bg_remover.tolerance_label' | t }}</label>
+          <input id="bg-remover-tolerance" class="pf-tool__range" type="range" min="0" max="80" value="20" data-bg-tolerance>
+        </div>
+      </div>
+      <div class="pf-tool__row">
+        <button class="pf-winbtn" type="button" data-bg-run>{{ 'tools.bg_remover.action' | t }}</button>
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-bg-download>{{ 'tools.bg_remover.download' | t }}</button>
+        <span class="pf-tool__status" data-bg-status>{{ 'tools.common.status_ready' | t }}</span>
+      </div>
+      <div class="pf-tool__canvaswrap">
+        <canvas class="pf-tool__canvas" width="420" height="260" data-bg-canvas aria-label="{{ 'tools.bg_remover.preview' | t }}"></canvas>
+      </div>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'bg-remover', tool_title: 'tools.bg_remover.title' | t, product: tool_product %}
+  {% endif %}
+</div>

@@ -1,0 +1,42 @@
+{% assign tool_product = all_products[settings.tool_listing_generator_product] %}
+<div class="pf-tool" data-tool="listing-generator">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">✍️</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.listing_generator.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.listing_generator.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_listing_generator' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_listing_generator' %}
+    <div class="pf-tool__body">
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="listing-product">{{ 'tools.listing_generator.product_label' | t }}</label>
+          <input id="listing-product" class="pf-tool__input" type="text" data-listing-product placeholder="{{ 'tools.listing_generator.product_placeholder' | t }}">
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="listing-style">{{ 'tools.listing_generator.style_label' | t }}</label>
+          <input id="listing-style" class="pf-tool__input" type="text" data-listing-style placeholder="{{ 'tools.listing_generator.style_placeholder' | t }}">
+        </div>
+      </div>
+      <div class="pf-tool__field">
+        <label class="pf-tool__label" for="listing-keywords">{{ 'tools.listing_generator.keywords_label' | t }}</label>
+        <input id="listing-keywords" class="pf-tool__input" type="text" data-listing-keywords placeholder="{{ 'tools.listing_generator.keywords_placeholder' | t }}">
+      </div>
+      <div class="pf-tool__row">
+        <button class="pf-winbtn" type="button" data-listing-run>{{ 'tools.listing_generator.action' | t }}</button>
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-listing-copy>{{ 'tools.listing_generator.copy' | t }}</button>
+        <span class="pf-tool__status" data-listing-status>{{ 'tools.common.status_ready' | t }}</span>
+      </div>
+      <ol class="pf-tool__list" data-listing-output aria-label="{{ 'tools.listing_generator.output_label' | t }}"></ol>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'listing-generator', tool_title: 'tools.listing_generator.title' | t, product: tool_product %}
+  {% endif %}
+</div>
