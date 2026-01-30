@@ -384,6 +384,15 @@
   };
 
   const initModals = (root) => {
+    const closeModal = (modal) => {
+      if (modal) modal.hidden = true;
+    };
+    const closeAll = () => {
+      root.querySelectorAll("[data-tool-modal]").forEach((modal) => {
+        modal.hidden = true;
+      });
+    };
+
     root.addEventListener("click", (event) => {
       const open = event.target.closest("[data-tool-modal-open]");
       if (open) {
@@ -392,10 +401,22 @@
         if (modal) modal.hidden = false;
         return;
       }
+      const overlay = event.target.closest("[data-tool-modal]");
+      if (overlay && event.target === overlay) {
+        closeModal(overlay);
+        return;
+      }
       const close = event.target.closest("[data-tool-modal-close]");
       if (close) {
         const id = close.getAttribute("data-tool-modal-close");
         const modal = root.querySelector(`[data-tool-modal="${id}"]`);
+        closeModal(modal);
+      }
+    });
+
+    root.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeAll();
         if (modal) modal.hidden = true;
       }
     });
