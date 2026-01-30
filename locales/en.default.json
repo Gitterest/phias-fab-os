@@ -11,5 +11,90 @@
     "close": "Close",
     "minimize": "Minimize",
     "restore": "Restore"
+  },
+  "tools": {
+    "title": "Tools",
+    "subtitle": "Paid, gated tools unlocked by one-time purchase.",
+    "unlocked": "Unlocked",
+    "common": {
+      "copy": "Copy",
+      "status_ready": "Ready."
+    },
+    "locked": {
+      "title": "Locked",
+      "badge": "Locked",
+      "message": "Purchase once to unlock this tool for your account.",
+      "cta": "Unlock tool",
+      "modal_title": "Unlock {{ tool }}",
+      "modal_body": "Access is granted with a one-time purchase and a customer tag.",
+      "purchase": "Purchase access",
+      "unavailable": "Product unavailable. Please contact support.",
+      "close": "Close"
+    },
+    "svg_optimizer": {
+      "title": "SVG Optimizer",
+      "desc": "Minify SVG markup for smaller files.",
+      "input_label": "SVG markup",
+      "output_label": "Optimized SVG",
+      "strip_metadata": "Remove metadata and comments",
+      "action": "Optimize",
+      "download": "Download SVG"
+    },
+    "svg_color_swapper": {
+      "title": "SVG Color Swapper",
+      "desc": "Swap a color across SVG fills and strokes.",
+      "input_label": "SVG markup",
+      "output_label": "Updated SVG",
+      "from_label": "From color",
+      "to_label": "To color",
+      "case": "Case-insensitive match",
+      "action": "Swap colors",
+      "download": "Download SVG"
+    },
+    "bg_remover": {
+      "title": "Image Background Remover",
+      "desc": "Remove a solid-color background from images.",
+      "input_label": "Upload image",
+      "color_label": "Background color",
+      "tolerance_label": "Tolerance",
+      "action": "Remove background",
+      "download": "Download PNG",
+      "preview": "Background removal preview"
+    },
+    "image_upscaler": {
+      "title": "Image Upscaler",
+      "desc": "Upscale images by 2x or 4x.",
+      "input_label": "Upload image",
+      "scale_label": "Scale",
+      "action": "Upscale",
+      "download": "Download PNG",
+      "preview": "Upscaled preview"
+    },
+    "listing_generator": {
+      "title": "Listing Title Generator",
+      "desc": "Generate optimized listing titles for marketplaces.",
+      "product_label": "Product name",
+      "product_placeholder": "e.g. SVG floral bundle",
+      "style_label": "Style or niche",
+      "style_placeholder": "e.g. Retro boho",
+      "keywords_label": "Keywords (comma-separated)",
+      "keywords_placeholder": "e.g. summer, printable, gift",
+      "action": "Generate titles",
+      "copy": "Copy titles",
+      "output_label": "Generated titles"
+    },
+    "profit_calculator": {
+      "title": "Profit / Fee Calculator",
+      "desc": "Calculate net profit after fees.",
+      "price_label": "Sale price",
+      "cost_label": "Cost of goods",
+      "shipping_label": "Shipping cost",
+      "payment_fee_label": "Payment fee (%)",
+      "platform_fee_label": "Platform fee (%)",
+      "fixed_fee_label": "Fixed fee",
+      "fees_label": "Total fees",
+      "net_label": "Net profit",
+      "margin_label": "Profit margin"
+    }
   }
 }

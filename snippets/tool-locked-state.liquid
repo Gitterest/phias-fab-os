@@ -1,0 +1,41 @@
+{% assign modal_id = tool_id | default: tool_title | handleize %}
+{% assign product_title = product.title | default: tool_title %}
+<div class="pf-tool__body">
+  <div class="pf-tool__locked">
+    <div class="pf-tool__locked-icon" aria-hidden="true">
+      <img src="{{ 'icons/lock.svg' | asset_url }}" alt="" loading="lazy" width="20" height="20">
+    </div>
+    <div>
+      <div class="pf-tool__locked-title">{{ 'tools.locked.title' | t }}</div>
+      <div class="pf-tool__locked-desc">{{ 'tools.locked.message' | t }}</div>
+    </div>
+  </div>
+  <div class="pf-tool__actions">
+    <button class="pf-winbtn" type="button" data-tool-modal-open="{{ modal_id }}">{{ 'tools.locked.cta' | t }}</button>
+  </div>
+</div>
+
+<div class="pf-modal" data-tool-modal="{{ modal_id }}" hidden>
+  <div class="pf-modal__dialog" role="dialog" aria-modal="true" aria-label="{{ 'tools.locked.modal_title' | t: tool: tool_title }}">
+    <div class="pf-modal__header">
+      <div>
+        <div class="pf-modal__title">{{ 'tools.locked.modal_title' | t: tool: tool_title }}</div>
+        <div class="pf-modal__subtitle">{{ 'tools.locked.modal_body' | t }}</div>
+      </div>
+      <button class="pf-modal__close" type="button" aria-label="{{ 'tools.locked.close' | t }}" data-tool-modal-close="{{ modal_id }}">×</button>
+    </div>
+    <div class="pf-modal__content">
+      {% if product != blank %}
+        <div class="pf-modal__product">
+          <div class="pf-modal__product-title">{{ product_title }}</div>
+          <div class="pf-modal__product-price">{{ product.price | money }}</div>
+        </div>
+        <a class="pf-winbtn" href="{{ product.url }}" data-tool-purchase>
+          {{ 'tools.locked.purchase' | t }}
+        </a>
+      {% else %}
+        <div class="pf-modal__product-unavailable">{{ 'tools.locked.unavailable' | t }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

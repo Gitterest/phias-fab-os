@@ -38,6 +38,40 @@
         "max": 36,
         "step": 1,
         "default": 12
+      },
+      {
+        "type": "header",
+        "content": "Paid tools products"
+      },
+      {
+        "type": "product",
+        "id": "tool_svg_optimizer_product",
+        "label": "SVG Optimizer product"
+      },
+      {
+        "type": "product",
+        "id": "tool_svg_color_swapper_product",
+        "label": "SVG Color Swapper product"
+      },
+      {
+        "type": "product",
+        "id": "tool_bg_remover_product",
+        "label": "Image Background Remover product"
+      },
+      {
+        "type": "product",
+        "id": "tool_image_upscaler_product",
+        "label": "Image Upscaler product"
+      },
+      {
+        "type": "product",
+        "id": "tool_listing_generator_product",
+        "label": "Listing Title Generator product"
+      },
+      {
+        "type": "product",
+        "id": "tool_profit_calculator_product",
+        "label": "Profit / Fee Calculator product"
       }
     ]
   }

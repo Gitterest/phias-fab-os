@@ -1,0 +1,43 @@
+{% assign tool_product = all_products[settings.tool_image_upscaler_product] %}
+<div class="pf-tool" data-tool="image-upscaler">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🔍</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.image_upscaler.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.image_upscaler.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_image_upscaler' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_image_upscaler' %}
+    <div class="pf-tool__body">
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="upscaler-input">{{ 'tools.image_upscaler.input_label' | t }}</label>
+          <input id="upscaler-input" class="pf-tool__input" type="file" accept="image/*" data-upscale-input>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="upscaler-scale">{{ 'tools.image_upscaler.scale_label' | t }}</label>
+          <select id="upscaler-scale" class="pf-tool__select" data-upscale-factor>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
+      </div>
+      <div class="pf-tool__row">
+        <button class="pf-winbtn" type="button" data-upscale-run>{{ 'tools.image_upscaler.action' | t }}</button>
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-upscale-download>{{ 'tools.image_upscaler.download' | t }}</button>
+        <span class="pf-tool__status" data-upscale-status>{{ 'tools.common.status_ready' | t }}</span>
+      </div>
+      <div class="pf-tool__canvaswrap">
+        <canvas class="pf-tool__canvas" width="420" height="260" data-upscale-canvas aria-label="{{ 'tools.image_upscaler.preview' | t }}"></canvas>
+      </div>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'image-upscaler', tool_title: 'tools.image_upscaler.title' | t, product: tool_product %}
+  {% endif %}
+</div>

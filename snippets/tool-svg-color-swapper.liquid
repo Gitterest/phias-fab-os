@@ -1,0 +1,51 @@
+{% assign tool_product = all_products[settings.tool_svg_color_swapper_product] %}
+<div class="pf-tool" data-tool="svg-color-swapper">
+  <div class="pf-tool__head">
+    <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🎨</span></div>
+    <div>
+      <div class="pf-tool__title">{{ 'tools.svg_color_swapper.title' | t }}</div>
+      <div class="pf-tool__desc">{{ 'tools.svg_color_swapper.desc' | t }}</div>
+    </div>
+    {% if customer and customer.tags contains 'tool_svg_color_swapper' %}
+      <span class="pf-tool__badge pf-tool__badge--open">{{ 'tools.unlocked' | t }}</span>
+    {% else %}
+      <span class="pf-tool__badge pf-tool__badge--locked">{{ 'tools.locked.badge' | t }}</span>
+    {% endif %}
+  </div>
+
+  {% if customer and customer.tags contains 'tool_svg_color_swapper' %}
+    <div class="pf-tool__body">
+      <label class="pf-tool__label" for="svg-swapper-input">{{ 'tools.svg_color_swapper.input_label' | t }}</label>
+      <textarea id="svg-swapper-input" class="pf-tool__textarea" rows="7" data-swap-input placeholder="<svg>...</svg>"></textarea>
+      <div class="pf-tool__row pf-tool__row--split">
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="svg-swapper-from">{{ 'tools.svg_color_swapper.from_label' | t }}</label>
+          <div class="pf-tool__color">
+            <input id="svg-swapper-from" type="color" value="#000000" data-color-from>
+            <input class="pf-tool__input" type="text" value="#000000" data-color-from-text>
+          </div>
+        </div>
+        <div class="pf-tool__field">
+          <label class="pf-tool__label" for="svg-swapper-to">{{ 'tools.svg_color_swapper.to_label' | t }}</label>
+          <div class="pf-tool__color">
+            <input id="svg-swapper-to" type="color" value="#ff0000" data-color-to>
+            <input class="pf-tool__input" type="text" value="#ff0000" data-color-to-text>
+          </div>
+        </div>
+      </div>
+      <div class="pf-tool__row">
+        <label class="pf-tool__checkbox"><input type="checkbox" data-swap-case checked> {{ 'tools.svg_color_swapper.case' | t }}</label>
+        <button class="pf-winbtn" type="button" data-swap-run>{{ 'tools.svg_color_swapper.action' | t }}</button>
+      </div>
+      <label class="pf-tool__label" for="svg-swapper-output">{{ 'tools.svg_color_swapper.output_label' | t }}</label>
+      <textarea id="svg-swapper-output" class="pf-tool__textarea" rows="6" data-swap-output readonly></textarea>
+      <div class="pf-tool__row">
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-swap-copy>{{ 'tools.common.copy' | t }}</button>
+        <button class="pf-winbtn pf-winbtn--ghost" type="button" data-swap-download>{{ 'tools.svg_color_swapper.download' | t }}</button>
+        <span class="pf-tool__status" data-swap-status>{{ 'tools.common.status_ready' | t }}</span>
+      </div>
+    </div>
+  {% else %}
+    {% render 'tool-locked-state', tool_id: 'svg-color-swapper', tool_title: 'tools.svg_color_swapper.title' | t, product: tool_product %}
+  {% endif %}
+</div>
