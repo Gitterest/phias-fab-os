@@ -14,6 +14,7 @@
   const startMenu = $("[data-startmenu]");
   const clockEl = $("[data-clock]");
   const cartBadge = $("[data-cartbadge]");
+  const taskbarEl = root.querySelector(".pf-taskbar");
 
   // ---- Utilities
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({
@@ -70,7 +71,7 @@
   };
   tick(); setInterval(tick, 10_000);
 
-  // ---- Start menu (Windows 7 cascading)
+  // ---- Start menu
   function closeStart() { 
     startMenu?.setAttribute("hidden","");
     startBtn?.classList.remove("pf-startbtn--active");
@@ -85,20 +86,6 @@
     if (!startMenu) return;
     const hidden = startMenu.hasAttribute("hidden");
     hidden ? openStart() : closeStart();
-  });
-
-  // flyout hover logic
-  $$(".pf-menu__item--hasflyout", startMenu || document).forEach(item => {
-    const btn = $("[data-flyoutbtn]", item);
-    const flyout = $("[data-flyout]", item);
-    if (!btn || !flyout) return;
-
-    const show = () => { flyout.removeAttribute("hidden"); };
-    const hide = () => { flyout.setAttribute("hidden",""); closeDescendantFlyouts(flyout); };
-
-    item.addEventListener("mouseenter", show);
-    item.addEventListener("mouseleave", hide);
-    btn.addEventListener("focus", show);
   });
 
   function closeDescendantFlyouts(node){
@@ -118,13 +105,51 @@
       closeStart();
     }
   });
+  document.addEventListener("focusin", (e) => {
+    if (!startMenu || startMenu.hasAttribute("hidden")) return;
+    if (startMenu.contains(e.target) || startBtn?.contains(e.target)) return;
+    closeStart();
+  });
+  window.addEventListener("blur", closeStart);
 
   // ---- OS core: windows + taskbar
   let z = 2001;
   let seq = 0;
   const windows = new Map(); // id -> {el, taskEl, minimized, maximized, url, title, restoreState}
+  let dragState = null;
+
+  const getTaskbarHeight = () => taskbarEl?.getBoundingClientRect().height || 48;
+
+  window.addEventListener("mousemove", (e) => {
+    if (!dragState) return;
+    const state = dragState;
+    const w = windows.get(state.winId);
+    if (!w) return;
+    if (state.wasMaximized) {
+      state.wasMaximized = false;
+      toggleMaximize(state.winId);
+      const r = w.el.getBoundingClientRect();
+      state.sl = r.left;
+      state.st = r.top;
+      state.sx = e.clientX;
+      state.sy = e.clientY;
+    }
+    const r = w.el.getBoundingClientRect();
+    const dx = e.clientX - state.sx;
+    const dy = e.clientY - state.sy;
+    const maxLeft = Math.max(6, window.innerWidth - r.width - 6);
+    const maxTop = Math.max(6, window.innerHeight - getTaskbarHeight() - r.height - 6);
+    w.el.style.left = `${Math.max(6, Math.min(state.sl + dx, maxLeft))}px`;
+    w.el.style.top = `${Math.max(6, Math.min(state.st + dy, maxTop))}px`;
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (dragState) dragState = null;
+  });
 
   function setActive(winId){
+    const target = windows.get(winId);
+    if (!target || target.minimized) return;
     windows.forEach((w, id) => {
       if (id === winId) {
         w.el.style.zIndex = String(++z);
@@ -135,6 +160,18 @@
         w.el.classList.remove("pf-win--active");
       }
     });
+  }
+
+  function activateLastVisible(excludeId){
+    const ids = Array.from(windows.keys());
+    for (let i = ids.length - 1; i >= 0; i -= 1){
+      const id = ids[i];
+      const w = windows.get(id);
+      if (!w || w.minimized || id === excludeId) continue;
+      setActive(id);
+      return;
+    }
+    windows.forEach((w) => w.taskEl?.setAttribute("aria-selected", "false"));
   }
 
   function addTaskButton(winId, title){
@@ -191,6 +228,7 @@
       w.el.style.opacity = "";
       w.el.style.transformOrigin = "";
       w.taskEl?.setAttribute("aria-selected","false");
+      activateLastVisible(winId);
     }, 200);
   }
 
@@ -254,8 +292,9 @@
         top: w.el.style.top || `${rect.top}px`
       };
       w.el.style.transition = "all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)";
+      const taskbarHeight = getTaskbarHeight();
       w.el.style.width = "calc(100vw - 12px)";
-      w.el.style.height = "calc(100vh - 52px)";
+      w.el.style.height = `calc(100vh - ${taskbarHeight + 12}px)`;
       w.el.style.left = "6px";
       w.el.style.top = "6px";
       setTimeout(() => { w.el.style.transition = ""; }, 200);
@@ -276,9 +315,7 @@
       w.el.remove();
       w.taskEl?.remove();
       windows.delete(winId);
-      // activate last
-      const last = Array.from(windows.keys()).pop();
-      if (last) setActive(last);
+      activateLastVisible();
     }, 150);
   }
 
@@ -338,14 +375,17 @@
 
     // drag
     const bar = el.querySelector("[data-dragbar]");
-    let dragging = false, sx=0, sy=0, sl=0, st=0, doubleClickTimer = null;
-
     bar?.addEventListener("mousedown", (e) => {
       if (e.target.closest(".pf-win__controls")) return;
-      dragging = true;
       const r = el.getBoundingClientRect();
-      sx = e.clientX; sy = e.clientY;
-      sl = r.left; st = r.top;
+      dragState = {
+        winId,
+        sx: e.clientX,
+        sy: e.clientY,
+        sl: r.left,
+        st: r.top,
+        wasMaximized: windows.get(winId)?.maximized
+      };
       e.preventDefault();
     });
 
@@ -353,23 +393,6 @@
       if (e.target.closest(".pf-win__controls")) return;
       toggleMaximize(winId);
     });
-
-    window.addEventListener("mousemove", (e) => {
-      if (!dragging) return;
-      const w = windows.get(winId);
-      if (w?.maximized) {
-        // If dragging from maximized, restore first
-        toggleMaximize(winId);
-        const r = el.getBoundingClientRect();
-        sl = r.left; st = r.top;
-        sx = e.clientX; sy = e.clientY;
-      }
-      const dx = e.clientX - sx;
-      const dy = e.clientY - sy;
-      el.style.left = `${Math.max(6, Math.min(sl + dx, window.innerWidth - 50))}px`;
-      el.style.top  = `${Math.max(6, Math.min(st + dy, window.innerHeight - 50))}px`;
-    });
-    window.addEventListener("mouseup", () => dragging = false);
 
     if (url) loadUrlIntoWindow(winId, url, safeTitle);
     return winId;
@@ -434,7 +457,6 @@
       if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
       if (!isInternal(href)) return;
       if (isProtected(href)) return;
-    if (isProtected(href)) return;
       a.addEventListener("click", (e) => {
         e.preventDefault();
         openUrl(href, a.textContent?.trim() || "Link");
@@ -605,7 +627,7 @@
           </div>
 
           <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+            <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
               <div class="pf-windesc" style="margin-bottom:10px;">Compatibility</div>
               <div class="pf-winrow" style="gap:8px;flex-wrap:wrap;">
                 <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=compat-cricut" data-title="Cricut Compatible">Cricut</button>
@@ -615,7 +637,7 @@
               </div>
             </div>
 
-            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+            <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
               <div class="pf-windesc" style="margin-bottom:10px;">Licenses</div>
               <div class="pf-winrow" style="gap:8px;flex-wrap:wrap;">
                 <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=lic-personal" data-title="Personal License">Personal</button>
@@ -634,13 +656,15 @@
           </div>
         </div>
       `;
-      const w = createWindow({ title: ctx.title || "File Manager", html, appId:"files" });
-      w.el.addEventListener("click", (e)=>{
+      const winId = createWindow({ title: ctx.title || "File Manager", html, appId:"files" });
+      const win = windows.get(winId);
+      if (!win) return winId;
+      win.el.addEventListener("click", (e)=>{
         const btn = e.target.closest("[data-open]");
         if (!btn) return;
         openUrl(btn.getAttribute("data-open"), btn.getAttribute("data-title") || "Window");
       });
-      return w;
+      return winId;
     }
   });
 
@@ -652,12 +676,12 @@
           <div class="pf-windesc">Local OS preferences stored in your browser (does not change Shopify theme settings).</div>
 
           <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+            <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
               <label class="pf-winlabel">UI Scale</label>
               <input class="pf-wininput" type="range" min="90" max="120" value="100" data-ui-scale>
               <div class="pf-windesc" style="margin-top:6px;">Tip: 100% is default.</div>
             </div>
-            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+            <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
               <label class="pf-winlabel">Reduce motion</label>
               <select class="pf-wininput" data-reduce-motion>
                 <option value="system">System default</option>
@@ -740,7 +764,7 @@
             <div class="pf-windesc">Design text-based SVGs with quick styling controls, export presets, and one-click download.</div>
 
             <div style="margin-top:10px;display:grid;grid-template-columns: 1.2fr .8fr; gap:12px; align-items:start;">
-              <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
                 <div class="pf-winrow" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
                   <div style="flex:1;min-width:220px;">
                     <label class="pf-winlabel">Text</label>
@@ -813,13 +837,13 @@
                   <button class="pf-winbtn pf-winbtn--ghost" type="button" data-download disabled>Download SVG</button>
                 </div>
 
-                <div style="margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.04);">
+                <div style="margin-top:12px;border:1px solid #c3cbd9;border-radius:2px;padding:10px;background:#f5f7fb;">
                   <div class="pf-windesc" style="margin-bottom:6px;">Preview</div>
                   <div data-preview style="overflow:auto;max-height:320px;"></div>
                 </div>
               </div>
 
-              <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <div style="border:1px solid #c3cbd9;border-radius:2px;padding:12px;background:#f5f7fb;">
                 <div class="pf-windesc">Quick actions</div>
                 <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;margin-top:10px;">
                   <button class="pf-winbtn pf-winbtn--ghost" type="button" data-save-preset>Save preset</button>
@@ -837,7 +861,7 @@
               <button class="pf-winbtn" type="button" data-render>Render</button>
               <button class="pf-winbtn pf-winbtn--ghost" type="button" data-clearsvg>Clear</button>
             </div>
-            <div style="margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.04);">
+            <div style="margin-top:12px;border:1px solid #c3cbd9;border-radius:2px;padding:10px;background:#f5f7fb;">
               <div class="pf-windesc" style="margin-bottom:6px;">Preview</div>
               <div data-svgpreview style="overflow:auto;max-height:280px;"></div>
             </div>
@@ -1056,10 +1080,6 @@
         if (svgPrev) svgPrev.innerHTML = "";
       });
 
-      // initial render
-      const initSvg = makeSvg(tIn?.value || "PHIA'S FAB", sIn?.value || 72);
-      renderSvg(initSvg);
-
       return winId;
     }
   });
@@ -1130,13 +1150,13 @@ OS.registerApp("tools", {
         const line = item.key;
         const qty = item.quantity;
         const price = (item.final_line_price / 100).toFixed(2);
-        const img = item.image ? `<img src="${item.image}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:12px;">` : `<div style="width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.06)"></div>`;
+        const img = item.image ? `<img src="${item.image}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:2px;">` : `<div style="width:52px;height:52px;border-radius:2px;background:#f0f3f8;border:1px solid #c3cbd9;"></div>`;
         return `
-          <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);">
+          <div style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #c3cbd9;">
             ${img}
             <div style="flex:1; min-width:0;">
               <div style="font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
-              <div style="color:rgba(255,255,255,.68);font-size:12px;">$${price}</div>
+              <div style="color:#526173;font-size:12px;">$${price}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <button class="pf-winbtn pf-winbtn--ghost" type="button" data-qtyminus="${line}">−</button>
