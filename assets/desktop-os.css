@@ -189,6 +189,31 @@ button{font-family:inherit}
 .pf-winbtn:hover{background:#d8e7ff;}
 .pf-winbtn--ghost{border-color:#9aa8bd; background:#f5f7fb;}
 .pf-winbtn--ghost:hover{background:#e7edf7;}
+.pf-winbtn:disabled{
+  border-color:#b9c3d3;
+  background:#eef2f8;
+  color:#7a8797;
+  cursor:default;
+  box-shadow:none;
+  opacity:1;
+}
+
+/* Studio-style status bar (XP-ish) */
+.pf-statusbar{
+  position: sticky;
+  bottom: -14px;
+  margin: 14px -14px -14px -14px;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #eef4ff, #e2eaf9);
+  border-top: 1px solid #b7c3d8;
+  color: #1b2b3b;
+  font-size: 12px;
+}
+.pf-statusbar--error{
+  background: linear-gradient(180deg, #fff1f1, #f7dcdc);
+  border-top-color: #c99a9a;
+  color:#5a1b1b;
+}
 
 .pf-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px;}
 .pf-card{border:1px solid #c3cbd9; background:#ffffff; border-radius:0; overflow:hidden; color:#1b2b3b; padding:0; cursor:pointer; text-align:left;}

@@ -834,7 +834,7 @@
                     <input class="pf-wininput" type="color" value="#000000" data-bg>
                   </div>
                   <button class="pf-winbtn" type="button" data-generate>Generate</button>
-                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-download disabled>Download SVG</button>
+                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-download disabled>Save SVG</button>
                 </div>
 
                 <div style="margin-top:12px;border:1px solid #c3cbd9;border-radius:2px;padding:10px;background:#f5f7fb;">
@@ -871,6 +871,8 @@
             <div class="pf-windesc">Scratchpad (stored only in this browser).</div>
             <textarea class="pf-wininput" style="height:180px;" data-notes placeholder="Notes…"></textarea>
           </div>
+
+          <div class="pf-statusbar" role="status" aria-live="polite" data-studio-status>Ready.</div>
         </div>`;
       const winId = createWindow({ title: productUrl ? `Studio — ${productTitle}` : "Studio", html, appId:"studio" });
 
@@ -898,8 +900,11 @@
       const notes = body.querySelector("[data-notes]");
       const notesKey = "pf_studio_notes";
       if (notes){
-        notes.value = localStorage.getItem(notesKey) || "";
-        notes.addEventListener("input", () => localStorage.setItem(notesKey, notes.value));
+        try { notes.value = localStorage.getItem(notesKey) || ""; } catch { notes.value = ""; }
+        notes.addEventListener("input", () => {
+          try { localStorage.setItem(notesKey, notes.value); }
+          catch { setStatus("Warning: notes could not be saved (storage blocked).", "error"); }
+        });
       }
       // Text -> SVG designer (advanced)
       const tIn = body.querySelector("[data-text]");
@@ -919,8 +924,10 @@
       const btnSavePreset = body.querySelector("[data-save-preset]");
       const btnLoadPreset = body.querySelector("[data-load-preset]");
       const btnCopy = body.querySelector("[data-copy]");
+      const statusEl = body.querySelector("[data-studio-status]");
 
       let lastSvg = "";
+      let lastDesign = null;
 
       const presets = {
         "12x12": { w: 3600, h: 3600 },
@@ -930,28 +937,157 @@
         "wide": { w: 3000, h: 1500 }
       };
 
-      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+      // ---- Studio SVG Generator (hardened)
+      const EOL = "\r\n";
       const escAttr = (s) => String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const escText = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const safeLSGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+      const safeLSSet = (k,v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
+
+      function setStatus(msg, kind){
+        if (!statusEl) return;
+        statusEl.textContent = String(msg || "Ready.");
+        statusEl.classList.toggle("pf-statusbar--error", kind === "error");
+      }
+
+      function openStudioAlert(message, title){
+        const t = title || "Studio";
+        const safeMsg = escapeHtml(String(message || "An error occurred."));
+        const html = `
+          <div class="pf-wincontent">
+            <div class="pf-wintitle" style="font-size:16px;margin:0 0 10px 0;">${escapeHtml(t)}</div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:32px;height:32px;border:1px solid #9aa8bd;background:#f5f7fb;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;">!</div>
+              <div class="pf-windesc" style="margin:0;white-space:pre-wrap;">${safeMsg}</div>
+            </div>
+            <div class="pf-winrow" style="justify-content:flex-end;margin-top:14px;">
+              <button class="pf-winbtn" type="button" data-alert-ok>OK</button>
+            </div>
+          </div>`;
+        const alertId = createWindow({ title: t, html, appId: "studio-alert" });
+        const aw = windows.get(alertId);
+        if (aw?.el){
+          // Message boxes shouldn't clutter the taskbar (XP-ish).
+          aw.taskEl?.remove();
+          aw.taskEl = null;
+
+          aw.el.style.width = "420px";
+          aw.el.style.height = "190px";
+          // center-ish
+          const r = body.getBoundingClientRect();
+          aw.el.style.left = `${Math.max(12, Math.round(r.left + (r.width - 420) / 2))}px`;
+          aw.el.style.top = `${Math.max(12, Math.round(r.top + (r.height - 190) / 2))}px`;
+          aw.el.querySelector("[data-alert-ok]")?.addEventListener("click", () => closeWindow(alertId));
+        }
+        return alertId;
+      }
+
+      function stripInvalidXmlChars(s){
+        // XML 1.0 disallowed control chars (keep \t \n \r)
+        return String(s || "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+      }
+
+      function clampNum(n, min, max, fallback){
+        const x = Number(n);
+        if (!Number.isFinite(x)) return fallback;
+        return Math.max(min, Math.min(max, x));
+      }
+
+      function sanitizeText(raw){
+        const s = stripInvalidXmlChars(raw);
+        const trimmed = s.replace(/\s+/g, " ").trim();
+        if (!trimmed) return "PHIA'S FAB";
+        return trimmed.slice(0, 180);
+      }
+
+      function sanitizeFont(raw){
+        const allowed = new Set(Array.from(fontSel?.options || []).map(o => o.value).filter(Boolean));
+        const candidate = String(raw || "").trim();
+        if (allowed.size && allowed.has(candidate)) return candidate;
+        return "Segoe UI";
+      }
+
+      function sanitizeHexColor(raw, fallback){
+        const s = String(raw || "").trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+        if (/^#[0-9a-fA-F]{3}$/.test(s)) return s.toLowerCase();
+        return fallback;
+      }
+
+      function fmtNum(n){
+        if (!Number.isFinite(n)) return "0";
+        const rounded = Math.round(n * 1000) / 1000;
+        if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded));
+        return String(rounded);
+      }
+
+      function stableHash32(str){
+        // FNV-1a 32-bit
+        let h = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++){
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 0x01000193);
+        }
+        return (h >>> 0);
+      }
+
+      function validateSvgMarkup(svg){
+        const s = String(svg || "");
+        if (!s.trim()) return { ok:false, error:"SVG is empty." };
+        const p = new DOMParser();
+        const doc = p.parseFromString(s, "image/svg+xml");
+        if (doc.getElementsByTagName("parsererror").length) return { ok:false, error:"SVG is not valid XML." };
+        const root = doc.documentElement;
+        if (!root || root.nodeName.toLowerCase() !== "svg") return { ok:false, error:"Root element must be <svg>." };
+        const w = root.getAttribute("width");
+        const h = root.getAttribute("height");
+        const vb = root.getAttribute("viewBox");
+        if (!w || !h || !vb) return { ok:false, error:"SVG must include width, height, and viewBox." };
+        return { ok:true, doc };
+      }
 
       function getDesign(){
-        const text = tIn?.value || "PHIA'S FAB";
-        const font = fontSel?.value || "Segoe UI";
-        const size = clamp(Number(sizeIn?.value || 96), 10, 400);
-        const fill = fillIn?.value || "#ffffff";
-        const stroke = strokeIn?.value || "#00e5ff";
-        const strokeW = clamp(Number(swIn?.value || 0), 0, 40);
-        const spacing = clamp(Number(spIn?.value || 0), -30, 120);
-        const curve = clamp(Number(curveIn?.value || 0), -100, 100);
-        const preset = presetSel?.value || "12x12";
-        const pad = clamp(Number(padIn?.value || 120), 0, 1200);
-        const bg = bgIn?.value || "#000000";
+        const preset = String(presetSel?.value || "12x12");
         const dim = presets[preset] || presets["12x12"];
-        return { text, font, size, fill, stroke, strokeW, spacing, curve, preset, pad, bg, w: dim.w, h: dim.h };
+        const w = clampNum(dim?.w, 64, 12000, 3600);
+        const h = clampNum(dim?.h, 64, 12000, 3600);
+
+        const text = sanitizeText(tIn?.value || "PHIA'S FAB");
+        const font = sanitizeFont(fontSel?.value || "Segoe UI");
+        const size = clampNum(sizeIn?.value, 10, 400, 96);
+        const fill = sanitizeHexColor(fillIn?.value, "#ffffff");
+        const stroke = sanitizeHexColor(strokeIn?.value, "#00e5ff");
+        const strokeW = clampNum(swIn?.value, 0, 40, 3);
+        const spacing = clampNum(spIn?.value, -30, 120, 0);
+        const curve = clampNum(curveIn?.value, -100, 100, 0);
+        const padMax = Math.max(0, Math.floor(Math.min(w, h) / 2) - 1);
+        const pad = clampNum(padIn?.value, 0, padMax, 120);
+        const bg = sanitizeHexColor(bgIn?.value, "#000000");
+
+        return {
+          text, font, size, fill, stroke, strokeW, spacing, curve, preset,
+          pad, bg,
+          w: Math.round(w),
+          h: Math.round(h)
+        };
       }
 
       function makeSvg(design){
-        const id = "pfpath_" + Math.random().toString(16).slice(2);
+        const normalized = JSON.stringify({
+          text: design.text,
+          font: design.font,
+          size: Number(design.size),
+          fill: design.fill,
+          stroke: design.stroke,
+          strokeW: Number(design.strokeW),
+          spacing: Number(design.spacing),
+          curve: Number(design.curve),
+          pad: Number(design.pad),
+          bg: design.bg,
+          w: Number(design.w),
+          h: Number(design.h)
+        });
+        const id = "pfpath_" + stableHash32(normalized).toString(16).padStart(8, "0");
         const safeText = escText(design.text);
 
         // baseline and curve geometry
@@ -963,10 +1099,10 @@
 
         // Quadratic curve: M x0,cy Q cx,cy-amp x1,cy
         const qy = cy - amp;
-        const d = `M ${x0} ${cy} Q ${cx} ${qy} ${x1} ${cy}`;
+        const d = `M ${fmtNum(x0)} ${fmtNum(cy)} Q ${fmtNum(cx)} ${fmtNum(qy)} ${fmtNum(x1)} ${fmtNum(cy)}`;
 
-        const letterSpacing = design.spacing; // px-ish
-        const textAttrs = `font-family="${escAttr(design.font)}, system-ui, sans-serif" font-size="${design.size}" letter-spacing="${letterSpacing}"`;
+        const letterSpacing = fmtNum(design.spacing); // px-ish
+        const textAttrs = `font-family="${escAttr(design.font)}, system-ui, sans-serif" font-size="${fmtNum(design.size)}" letter-spacing="${letterSpacing}"`;
 
         const bgRect = design.bg && design.bg !== "transparent"
           ? `<rect width="100%" height="100%" fill="${escAttr(design.bg)}"/>`
@@ -975,85 +1111,185 @@
         const usePath = Math.abs(design.curve) > 0.5;
 
         const textEl = usePath
-          ? `<text ${textAttrs} fill="${escAttr(design.fill)}" ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${design.strokeW}" paint-order="stroke"` : ""}>
-               <textPath href="#${id}" startOffset="50%" text-anchor="middle">${safeText}</textPath>
-             </text>`
+          ? `<text ${textAttrs} fill="${escAttr(design.fill)}" ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${fmtNum(design.strokeW)}" paint-order="stroke"` : ""}>${EOL}    <textPath href="#${id}" xlink:href="#${id}" startOffset="50%" text-anchor="middle">${safeText}</textPath>${EOL}  </text>`
           : `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
                  ${textAttrs}
                  fill="${escAttr(design.fill)}"
-                 ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${design.strokeW}" paint-order="stroke"` : ""}>${safeText}</text>`;
+                 ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${fmtNum(design.strokeW)}" paint-order="stroke"` : ""}>${safeText}</text>`;
 
         const defs = usePath ? `<defs><path id="${id}" d="${d}" /></defs>` : "";
 
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${design.w}" height="${design.h}" viewBox="0 0 ${design.w} ${design.h}">
-  ${bgRect}
-  ${defs}
-  ${textEl}
-</svg>`;
+        return [
+          `<?xml version="1.0" encoding="UTF-8"?>`,
+          `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${fmtNum(design.w)}" height="${fmtNum(design.h)}" viewBox="0 0 ${fmtNum(design.w)} ${fmtNum(design.h)}" preserveAspectRatio="xMidYMid meet">`,
+          `  ${bgRect}`,
+          `  ${defs}`,
+          `  ${textEl}`,
+          `</svg>`
+        ].join(EOL);
       }
 
-      function renderSvg(svg){
-        lastSvg = svg;
-        if (prev) prev.innerHTML = svg;
-        if (dlBtn) dlBtn.disabled = !svg;
+      function renderSvg(svg, opts){
+        const silent = Boolean(opts?.silent);
+        const res = validateSvgMarkup(svg);
+        if (!res.ok){
+          lastSvg = "";
+          lastDesign = null;
+          if (prev) prev.innerHTML = "";
+          if (dlBtn) dlBtn.disabled = true;
+          setStatus(`Error: ${res.error}`, "error");
+          if (!silent) openStudioAlert(res.error, "Studio — SVG Generator");
+          return false;
+        }
+        lastSvg = String(svg);
+        if (prev){
+          try{
+            const svgEl = res.doc.documentElement;
+            const imported = document.importNode(svgEl, true);
+            prev.replaceChildren(imported);
+          }catch{
+            // fallback to markup if import fails for any reason
+            prev.innerHTML = String(svg);
+          }
+        }
+        if (dlBtn) dlBtn.disabled = false;
+        setStatus("Ready. SVG generated.");
+        return true;
       }
 
-      function downloadSvg(){
-        if (!lastSvg) return;
-        const blob = new Blob([lastSvg], { type: "image/svg+xml;charset=utf-8" });
+      function nextSvgFileName(){
+        const key = "pf_svggen_icon_counter_v1";
+        const raw = safeLSGet(key);
+        let n = Number(raw);
+        if (!Number.isFinite(n) || n < 1) n = 1;
+        const name = `icon_${String(n).padStart(3, "0")}.svg`;
+        safeLSSet(key, String(n + 1));
+        return name;
+      }
+
+      function exportSvgToFile(svg, filename){
+        const blob = new Blob([String(svg)], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "phiasfab-studio.svg";
+        a.download = filename;
+        a.style.display = "none";
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(url);
+        // Delay revoke so the download reliably starts (some browsers need a tick).
+        setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 1500);
+      }
+
+      function downloadSvg(){
+        if (!lastSvg){
+          setStatus("Error: Nothing to save yet.", "error");
+          openStudioAlert("Nothing to save yet. Click Generate first.", "Studio — SVG Generator");
+          return;
+        }
+        const res = validateSvgMarkup(lastSvg);
+        if (!res.ok){
+          setStatus(`Error: ${res.error}`, "error");
+          openStudioAlert(res.error, "Studio — SVG Generator");
+          return;
+        }
+        try{
+          const filename = nextSvgFileName();
+          exportSvgToFile(lastSvg, filename);
+          setStatus(`Saved: ${filename}`);
+        }catch(e){
+          setStatus("Error: Save failed.", "error");
+          openStudioAlert("Save failed. Please try again.", "Studio — SVG Generator");
+        }
       }
 
       function copySvg(){
-        if (!lastSvg) return;
+        if (!lastSvg){
+          setStatus("Error: Nothing to copy yet.", "error");
+          openStudioAlert("Nothing to copy yet. Click Generate first.", "Studio — SVG Generator");
+          return;
+        }
+        const done = () => setStatus("Copied SVG to clipboard.");
+        const fail = () => {
+          setStatus("Error: Copy failed.", "error");
+          openStudioAlert("Copy failed. Your browser may block clipboard access here.", "Studio — SVG Generator");
+        };
         try{
-          navigator.clipboard.writeText(lastSvg);
-        }catch(e){
-          // fallback
-          const ta = document.createElement("textarea");
-          ta.value = lastSvg;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          ta.remove();
+          const p = navigator.clipboard?.writeText ? navigator.clipboard.writeText(lastSvg) : null;
+          if (p && typeof p.then === "function") p.then(done).catch(fail);
+          else {
+            // fallback
+            const ta = document.createElement("textarea");
+            ta.value = lastSvg;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand("copy");
+            ta.remove();
+            ok ? done() : fail();
+          }
+        }catch{
+          fail();
         }
       }
 
       const presetKey = "pf_studio_design_preset_v1";
       function savePreset(){
-        const d = getDesign();
-        localStorage.setItem(presetKey, JSON.stringify(d));
+        try{
+          const d = getDesign();
+          safeLSSet(presetKey, JSON.stringify(d));
+          setStatus("Preset saved.");
+        }catch{
+          setStatus("Error: Could not save preset.", "error");
+          openStudioAlert("Could not save preset (storage blocked or full).", "Studio — SVG Generator");
+        }
       }
       function loadPreset(){
         try{
-          const raw = localStorage.getItem(presetKey);
-          if (!raw) return;
+          const raw = safeLSGet(presetKey);
+          if (!raw){
+            setStatus("No saved preset found.");
+            return;
+          }
           const d = JSON.parse(raw);
-          if (tIn && d.text != null) tIn.value = d.text;
-          if (fontSel && d.font) fontSel.value = d.font;
-          if (sizeIn && d.size) sizeIn.value = String(d.size);
-          if (fillIn && d.fill) fillIn.value = d.fill;
-          if (strokeIn && d.stroke) strokeIn.value = d.stroke;
+          if (tIn && d.text != null) tIn.value = String(d.text);
+          if (fontSel && d.font) fontSel.value = String(d.font);
+          if (sizeIn && d.size != null) sizeIn.value = String(d.size);
+          if (fillIn && d.fill) fillIn.value = String(d.fill);
+          if (strokeIn && d.stroke) strokeIn.value = String(d.stroke);
           if (swIn && d.strokeW != null) swIn.value = String(d.strokeW);
           if (spIn && d.spacing != null) spIn.value = String(d.spacing);
           if (curveIn && d.curve != null) curveIn.value = String(d.curve);
-          if (presetSel && d.preset) presetSel.value = d.preset;
+          if (presetSel && d.preset) presetSel.value = String(d.preset);
           if (padIn && d.pad != null) padIn.value = String(d.pad);
-          if (bgIn && d.bg) bgIn.value = d.bg;
-          const svg = makeSvg(getDesign());
-          renderSvg(svg);
-        }catch(e){}
+          if (bgIn && d.bg) bgIn.value = String(d.bg);
+          setStatus("Preset loaded.");
+          regenerate({ silent:true });
+        }catch{
+          setStatus("Error: Preset is corrupted.", "error");
+          openStudioAlert("The saved preset could not be read (it may be corrupted).", "Studio — SVG Generator");
+        }
       }
 
-      genBtn?.addEventListener("click", () => renderSvg(makeSvg(getDesign())));
+      function regenerate(opts){
+        try{
+          const d = getDesign();
+          lastDesign = d;
+          const svg = makeSvg(d);
+          return renderSvg(svg, opts);
+        }catch(e){
+          lastSvg = "";
+          lastDesign = null;
+          if (prev) prev.innerHTML = "";
+          if (dlBtn) dlBtn.disabled = true;
+          setStatus("Error: Could not generate SVG.", "error");
+          if (!opts?.silent) openStudioAlert("Could not generate SVG. Please check your inputs.", "Studio — SVG Generator");
+          return false;
+        }
+      }
+
+      genBtn?.addEventListener("click", () => regenerate({ silent:false }));
       dlBtn?.addEventListener("click", downloadSvg);
       btnCopy?.addEventListener("click", copySvg);
       btnSavePreset?.addEventListener("click", savePreset);
@@ -1061,23 +1297,65 @@
 
       // auto-regenerate on changes (lightweight)
       const autoInputs = [tIn,fontSel,sizeIn,fillIn,strokeIn,swIn,spIn,curveIn,presetSel,padIn,bgIn].filter(Boolean);
-      autoInputs.forEach(el => el.addEventListener("input", () => renderSvg(makeSvg(getDesign()))));
+      let regenTimer = 0;
+      function scheduleRegen(){
+        if (regenTimer) window.clearTimeout(regenTimer);
+        regenTimer = window.setTimeout(() => { regenerate({ silent:true }); }, 60);
+      }
+      autoInputs.forEach(el => {
+        el.addEventListener("input", scheduleRegen);
+        el.addEventListener("change", scheduleRegen);
+      });
 
       // initial render
-      renderSvg(makeSvg(getDesign()));
+      regenerate({ silent:true });
 
 
 
       // SVG preview panel
       const svgIn = body.querySelector("[data-svginput]");
       const svgPrev = body.querySelector("[data-svgpreview]");
+      function sanitizeExternalSvgAndImport(svg){
+        const res = validateSvgMarkup(svg);
+        if (!res.ok) return { ok:false, error: res.error };
+        const root = res.doc.documentElement;
+        // Remove scripts/foreignObject and inline event handlers.
+        root.querySelectorAll("script, foreignObject").forEach(n => n.remove());
+        root.querySelectorAll("*").forEach(el => {
+          Array.from(el.attributes || []).forEach(a => {
+            const name = a.name || "";
+            const val = String(a.value || "");
+            if (/^on/i.test(name)) el.removeAttribute(name);
+            if ((name === "href" || name === "xlink:href") && /^javascript:/i.test(val)) el.removeAttribute(name);
+          });
+        });
+        return { ok:true, svgEl: root };
+      }
+
       body.querySelector("[data-render]")?.addEventListener("click", () => {
         const svg = svgIn?.value || "";
-        if (svgPrev) svgPrev.innerHTML = svg;
+        if (!svgPrev) return;
+        const res = sanitizeExternalSvgAndImport(svg);
+        if (!res.ok){
+          svgPrev.innerHTML = "";
+          setStatus(`Error: ${res.error}`, "error");
+          openStudioAlert(res.error, "Studio — SVG Preview");
+          return;
+        }
+        try{
+          const imported = document.importNode(res.svgEl, true);
+          svgPrev.replaceChildren(imported);
+          setStatus("Preview rendered.");
+        }catch{
+          svgPrev.innerHTML = "";
+          setStatus("Error: Could not render preview.", "error");
+          openStudioAlert("Could not render preview.", "Studio — SVG Preview");
+        }
       });
       body.querySelector("[data-clearsvg]")?.addEventListener("click", () => {
         if (svgIn) svgIn.value = "";
         if (svgPrev) svgPrev.innerHTML = "";
+        setStatus("Preview cleared.");
       });
 
       return winId;
