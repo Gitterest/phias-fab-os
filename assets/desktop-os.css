@@ -223,6 +223,71 @@ button{font-family:inherit}
 .pf-card__title{font-size:13px; font-weight:650; margin-bottom:4px;}
 .pf-card__price{font-size:12px; color:#526173;}
 
+/* Tools: XP-ish tool badges inside the Tools window */
+.pf-toolcard__meta{display:flex; gap:10px; align-items:center;}
+.pf-toolcard__text{min-width:0;}
+.pf-toolicon{
+  width:34px;
+  height:34px;
+  border:1px solid #7d90b0;
+  background:linear-gradient(180deg, #ffffff, #e6edf8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(0,0,0,.05);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+.pf-toolicon__glyph{font-size:18px; line-height:1;}
+.pf-toolicon--disabled{opacity:.55;}
+
+/* Image Compressor app layout */
+.pf-compressor__layout{
+  display:grid;
+  grid-template-columns: minmax(280px, 360px) minmax(260px, 1fr);
+  gap:12px;
+  align-items:start;
+}
+.pf-compressor__panel{
+  border:1px solid #c3cbd9;
+  border-radius:2px;
+  padding:12px;
+  background:#f5f7fb;
+}
+.pf-compressor__drop{
+  border:1px solid #9aa8bd;
+  background:#ffffff;
+  padding:10px;
+  border-radius:2px;
+}
+.pf-compressor__drop:focus{outline:2px solid rgba(42,107,214,.35); outline-offset:1px;}
+.pf-compressor__drop--over{border-color:#2a6bd6; background:#e7f0ff;}
+.pf-compressor__previews{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+.pf-compressor__imgwrap{
+  border:1px solid #c3cbd9;
+  background:#ffffff;
+  padding:8px;
+}
+.pf-compressor__img{
+  display:block;
+  width:100%;
+  max-height:240px;
+  object-fit:contain;
+  background:#ffffff;
+}
+.pf-compressor__stats{
+  margin-top:8px;
+  font-size:12px;
+  color:#526173;
+}
+@media (max-width: 760px){
+  .pf-compressor__layout{grid-template-columns:1fr;}
+  .pf-compressor__previews{grid-template-columns:1fr;}
+}
+
 .pf-winproduct{display:grid; grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr); gap:14px;}
 .pf-winproduct__media img{width:100%; border-radius:0; display:block;}
 .pf-winfooter{margin-top:12px; color:#526173; font-size:12px;}

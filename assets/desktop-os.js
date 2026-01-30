@@ -305,6 +305,9 @@
   function closeWindow(winId){
     const w = windows.get(winId);
     if (!w) return;
+
+    // Optional per-window cleanup hook (apps can register listeners/URLs).
+    try { if (typeof w.cleanup === "function") w.cleanup(); } catch {}
     
     // Animate close
     w.el.style.transition = "opacity 0.15s ease, transform 0.15s ease";
@@ -1362,6 +1365,421 @@
     }
   });
 
+  OS.registerApp("compressor", {
+    launch(){
+      // Single-instance behavior: focus existing window if already open.
+      for (const [id, w] of windows.entries()){
+        if (w?.appId === "compressor"){
+          if (w.minimized) restoreWindow(id);
+          setActive(id);
+          return id;
+        }
+      }
+
+      const html = `
+        <div class="pf-wincontent pf-compressor" data-compressor>
+          <h2 class="pf-wintitle">Image Compressor</h2>
+          <div class="pf-windesc">Compress images locally using your browser. No uploads.</div>
+
+          <div class="pf-compressor__layout" style="margin-top:12px;">
+            <div class="pf-compressor__col">
+              <div class="pf-compressor__panel">
+                <div class="pf-windesc" style="margin-bottom:8px;">Input</div>
+
+                <div class="pf-compressor__drop" data-drop role="button" tabindex="0" aria-label="Drop image here or browse">
+                  <div style="font-size:13px;font-weight:650;margin-bottom:4px;">Drop an image here</div>
+                  <div class="pf-windesc" style="margin:0 0 8px 0;">PNG, JPG/JPEG, WEBP</div>
+                  <div class="pf-winrow" style="margin:0;gap:8px;flex-wrap:wrap;">
+                    <input class="pf-wininput" type="file" accept="image/png,image/jpeg,image/webp" data-file>
+                    <button class="pf-winbtn pf-winbtn--ghost" type="button" data-clear disabled>Clear</button>
+                  </div>
+                </div>
+
+                <div class="pf-windesc" style="margin:12px 0 8px 0;">Options</div>
+
+                <div class="pf-winrow" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                  <div style="min-width:200px;flex:1;">
+                    <label class="pf-winlabel">Quality: <strong data-qval>80</strong></label>
+                    <input class="pf-wininput" type="range" min="0" max="100" value="80" data-quality>
+                    <div class="pf-windesc" style="margin-top:6px;">Quality affects JPG/WEBP only.</div>
+                  </div>
+                  <div style="width:160px;min-width:160px;">
+                    <label class="pf-winlabel">Output format</label>
+                    <select class="pf-wininput" data-format>
+                      <option value="image/jpeg">JPG</option>
+                      <option value="image/png">PNG</option>
+                      <option value="image/webp">WEBP</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="pf-compressor__resize">
+                  <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 8px 0;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1b2b3b;">
+                      <input type="checkbox" data-resize> Resize
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1b2b3b;">
+                      <input type="checkbox" data-keep checked> Maintain aspect ratio
+                    </label>
+                  </div>
+                  <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;align-items:flex-end;margin:0;">
+                    <div style="width:140px;">
+                      <label class="pf-winlabel">Width</label>
+                      <input class="pf-wininput" type="number" min="1" max="12000" step="1" data-w disabled>
+                    </div>
+                    <div style="width:140px;">
+                      <label class="pf-winlabel">Height</label>
+                      <input class="pf-wininput" type="number" min="1" max="12000" step="1" data-h disabled>
+                    </div>
+                    <button class="pf-winbtn" type="button" data-run disabled>Compress</button>
+                  </div>
+                </div>
+
+                <div class="pf-winrow" style="justify-content:flex-end;margin-top:10px;">
+                  <button class="pf-winbtn" type="button" data-download disabled>Download</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pf-compressor__col">
+              <div class="pf-compressor__panel">
+                <div class="pf-windesc" style="margin-bottom:8px;">Preview</div>
+
+                <div class="pf-compressor__previews">
+                  <div class="pf-compressor__previewbox">
+                    <div style="font-size:13px;font-weight:650;margin-bottom:6px;">Original</div>
+                    <div class="pf-compressor__imgwrap">
+                      <img class="pf-compressor__img" alt="Original image preview" data-origimg>
+                    </div>
+                    <div class="pf-compressor__stats" data-origstats>—</div>
+                  </div>
+                  <div class="pf-compressor__previewbox">
+                    <div style="font-size:13px;font-weight:650;margin-bottom:6px;">Compressed</div>
+                    <div class="pf-compressor__imgwrap">
+                      <img class="pf-compressor__img" alt="Compressed image preview" data-outimg>
+                    </div>
+                    <div class="pf-compressor__stats" data-outstats>—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pf-statusbar" role="status" aria-live="polite" data-status>Ready.</div>
+        </div>`;
+
+      const winId = createWindow({ title:"Image Compressor", html, appId:"compressor" });
+      const w = windows.get(winId);
+      const body = w?.el?.querySelector("[data-body]");
+      const appRoot = body?.querySelector("[data-compressor]");
+      if (!body || !appRoot) return winId;
+
+      const statusEl = appRoot.querySelector("[data-status]");
+      const drop = appRoot.querySelector("[data-drop]");
+      const fileIn = appRoot.querySelector("[data-file]");
+      const clearBtn = appRoot.querySelector("[data-clear]");
+      const qIn = appRoot.querySelector("[data-quality]");
+      const qVal = appRoot.querySelector("[data-qval]");
+      const fmtSel = appRoot.querySelector("[data-format]");
+      const resizeChk = appRoot.querySelector("[data-resize]");
+      const keepChk = appRoot.querySelector("[data-keep]");
+      const wIn = appRoot.querySelector("[data-w]");
+      const hIn = appRoot.querySelector("[data-h]");
+      const runBtn = appRoot.querySelector("[data-run]");
+      const dlBtn = appRoot.querySelector("[data-download]");
+      const origImg = appRoot.querySelector("[data-origimg]");
+      const outImg = appRoot.querySelector("[data-outimg]");
+      const origStats = appRoot.querySelector("[data-origstats]");
+      const outStats = appRoot.querySelector("[data-outstats]");
+
+      const listeners = [];
+      const on = (el, ev, fn, opts) => {
+        if (!el) return;
+        el.addEventListener(ev, fn, opts);
+        listeners.push(() => el.removeEventListener(ev, fn, opts));
+      };
+
+      let origFile = null;
+      let origUrl = "";
+      let outUrl = "";
+      let outBlob = null;
+      let decoded = null; // ImageBitmap or HTMLImageElement
+      let origW = 0;
+      let origH = 0;
+      let ratio = 1;
+      let job = 0;
+
+      function setStatus(msg, kind){
+        if (!statusEl) return;
+        statusEl.textContent = String(msg || "Ready.");
+        statusEl.classList.toggle("pf-statusbar--error", kind === "error");
+      }
+
+      function fmtBytes(n){
+        const b = Number(n) || 0;
+        if (b < 1024) return `${b} B`;
+        const kb = b / 1024;
+        if (kb < 1024) return `${kb.toFixed(1)} KB`;
+        const mb = kb / 1024;
+        return `${mb.toFixed(2)} MB`;
+      }
+
+      function extForMime(m){
+        if (m === "image/png") return "png";
+        if (m === "image/webp") return "webp";
+        return "jpg";
+      }
+
+      function safeStem(name){
+        const base = String(name || "image").replace(/\.[^.]+$/,"");
+        const cleaned = base.replace(/[^a-zA-Z0-9_\- ]+/g, "").trim().replace(/\s+/g, "_");
+        return (cleaned || "image").slice(0, 48);
+      }
+
+      function revokeUrl(u){
+        if (!u) return;
+        try { URL.revokeObjectURL(u); } catch {}
+      }
+
+      function resetOutput(){
+        if (outImg) outImg.removeAttribute("src");
+        if (outStats) outStats.textContent = "—";
+        if (dlBtn) dlBtn.disabled = true;
+        outBlob = null;
+        if (outUrl){ revokeUrl(outUrl); outUrl = ""; }
+      }
+
+      function resetAll(){
+        job += 1;
+        resetOutput();
+        if (origImg) origImg.removeAttribute("src");
+        if (origStats) origStats.textContent = "—";
+        if (origUrl){ revokeUrl(origUrl); origUrl = ""; }
+        origFile = null;
+        origW = 0; origH = 0; ratio = 1;
+        try { decoded?.close?.(); } catch {}
+        decoded = null;
+        if (runBtn) runBtn.disabled = true;
+        if (clearBtn) clearBtn.disabled = true;
+        if (wIn) wIn.value = "";
+        if (hIn) hIn.value = "";
+        setStatus("Ready.");
+      }
+
+      async function decodeFile(file){
+        if (window.createImageBitmap){
+          try { return await createImageBitmap(file); } catch {}
+        }
+        return await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Image decode failed."));
+          img.src = origUrl;
+        });
+      }
+
+      function clampInt(n, min, max, fallback){
+        const x = Math.round(Number(n));
+        if (!Number.isFinite(x)) return fallback;
+        return Math.max(min, Math.min(max, x));
+      }
+
+      function currentTargetSize(){
+        const resizeOn = Boolean(resizeChk?.checked);
+        const tw = resizeOn ? clampInt(wIn?.value, 1, 12000, origW) : origW;
+        const th = resizeOn ? clampInt(hIn?.value, 1, 12000, origH) : origH;
+        return { tw, th };
+      }
+
+      function syncResizeEnabled(){
+        const onResize = Boolean(resizeChk?.checked);
+        if (wIn) wIn.disabled = !onResize;
+        if (hIn) hIn.disabled = !onResize;
+      }
+
+      let syncing = false;
+      function syncOtherDimension(changed){
+        if (syncing) return;
+        if (!keepChk?.checked) return;
+        if (!resizeChk?.checked) return;
+        if (!ratio || !Number.isFinite(ratio) || ratio <= 0) return;
+        syncing = true;
+        if (changed === "w"){
+          const tw = clampInt(wIn?.value, 1, 12000, origW);
+          if (hIn) hIn.value = String(clampInt(Math.round(tw / ratio), 1, 12000, origH));
+        } else {
+          const th = clampInt(hIn?.value, 1, 12000, origH);
+          if (wIn) wIn.value = String(clampInt(Math.round(th * ratio), 1, 12000, origW));
+        }
+        syncing = false;
+      }
+
+      function setFile(file){
+        resetAll();
+        if (!file) return;
+        const okType = ["image/png","image/jpeg","image/webp"].includes(file.type);
+        if (!okType){
+          setStatus("Error: Unsupported file type.", "error");
+          return;
+        }
+        origFile = file;
+        origUrl = URL.createObjectURL(file);
+        if (origImg) origImg.src = origUrl;
+        if (origStats) origStats.textContent = `${fmtBytes(file.size)} • ${file.type || "image"}`;
+        if (clearBtn) clearBtn.disabled = false;
+        setStatus("Loading image…");
+
+        const myJob = ++job;
+        decodeFile(file).then((img) => {
+          if (myJob !== job) return;
+          decoded = img;
+          origW = img.width || img.naturalWidth || 0;
+          origH = img.height || img.naturalHeight || 0;
+          if (!origW || !origH) throw new Error("Invalid image dimensions.");
+          ratio = origW / origH;
+
+          if (wIn) wIn.value = String(origW);
+          if (hIn) hIn.value = String(origH);
+          syncResizeEnabled();
+          if (runBtn) runBtn.disabled = false;
+          setStatus("Ready. Click Compress.");
+        }).catch(() => {
+          if (myJob !== job) return;
+          setStatus("Error: Could not read image.", "error");
+          resetAll();
+        });
+      }
+
+      function toBlob(canvas, mime, q){
+        return new Promise((resolve, reject) => {
+          try{
+            if (mime === "image/png") canvas.toBlob(b => b ? resolve(b) : reject(new Error("PNG export failed.")), mime);
+            else canvas.toBlob(b => b ? resolve(b) : reject(new Error("Export failed.")), mime, q);
+          }catch(e){
+            reject(e);
+          }
+        });
+      }
+
+      async function runCompression(){
+        if (!origFile || !decoded) return;
+        resetOutput();
+
+        const myJob = ++job;
+        const mime = String(fmtSel?.value || "image/jpeg");
+        const q = Math.max(0, Math.min(1, Number(qIn?.value || 80) / 100));
+        const { tw, th } = currentTargetSize();
+        if (!tw || !th){
+          setStatus("Error: Invalid output size.", "error");
+          return;
+        }
+        if (tw * th > 70_000_000){
+          setStatus("Error: Output image is too large.", "error");
+          return;
+        }
+
+        setStatus("Compressing…");
+        try{
+          const canvas = document.createElement("canvas");
+          canvas.width = tw;
+          canvas.height = th;
+          const ctx = canvas.getContext("2d", { alpha: true });
+          if (!ctx) throw new Error("Canvas unavailable.");
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+
+          if (mime === "image/jpeg"){
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, tw, th);
+          }
+
+          ctx.drawImage(decoded, 0, 0, tw, th);
+          const blob = await toBlob(canvas, mime, q);
+          if (myJob !== job) return;
+
+          outBlob = blob;
+          outUrl = URL.createObjectURL(blob);
+          if (outImg) outImg.src = outUrl;
+
+          const origSize = origFile.size || 0;
+          const outSize = blob.size || 0;
+          const saved = origSize > 0 ? Math.max(0, (1 - outSize / origSize) * 100) : 0;
+
+          if (outStats){
+            outStats.textContent = `${fmtBytes(outSize)} • ${mime} • ${tw}×${th} • Saved ${saved.toFixed(1)}%`;
+          }
+          if (origStats){
+            origStats.textContent = `${fmtBytes(origSize)} • ${origFile.type || "image"} • ${origW}×${origH}`;
+          }
+          if (dlBtn) dlBtn.disabled = false;
+          setStatus("Done.");
+        }catch{
+          if (myJob !== job) return;
+          setStatus("Error: Compression failed.", "error");
+          resetOutput();
+        }
+      }
+
+      function download(){
+        if (!outBlob || !origFile) return;
+        const mime = String(fmtSel?.value || "image/jpeg");
+        const ext = extForMime(mime);
+        const name = `compressed_${safeStem(origFile.name)}.${ext}`;
+        const url = URL.createObjectURL(outBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => revokeUrl(url), 1500);
+        setStatus(`Saved: ${name}`);
+      }
+
+      // UI wiring
+      on(drop, "click", () => fileIn?.click());
+      on(drop, "keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileIn?.click(); } });
+
+      on(drop, "dragover", (e) => { e.preventDefault(); drop?.classList.add("pf-compressor__drop--over"); });
+      on(drop, "dragleave", () => drop?.classList.remove("pf-compressor__drop--over"));
+      on(drop, "drop", (e) => {
+        e.preventDefault();
+        drop?.classList.remove("pf-compressor__drop--over");
+        const f = e.dataTransfer?.files?.[0];
+        if (f) setFile(f);
+      });
+
+      on(fileIn, "change", () => {
+        const f = fileIn.files?.[0];
+        if (f) setFile(f);
+      });
+      on(clearBtn, "click", resetAll);
+
+      on(qIn, "input", () => { if (qVal) qVal.textContent = String(qIn.value); });
+      on(resizeChk, "change", () => { syncResizeEnabled(); resetOutput(); setStatus("Ready. Click Compress."); });
+      on(keepChk, "change", () => { resetOutput(); setStatus("Ready. Click Compress."); });
+      on(wIn, "input", () => { syncOtherDimension("w"); resetOutput(); });
+      on(hIn, "input", () => { syncOtherDimension("h"); resetOutput(); });
+      on(fmtSel, "change", () => { resetOutput(); setStatus("Ready. Click Compress."); });
+
+      on(runBtn, "click", runCompression);
+      on(dlBtn, "click", download);
+
+      // cleanup on close
+      w.cleanup = () => {
+        listeners.splice(0).forEach(off => { try { off(); } catch {} });
+        resetAll();
+      };
+
+      // Initialize quality label
+      if (qVal && qIn) qVal.textContent = String(qIn.value);
+      syncResizeEnabled();
+      setStatus("Ready.");
+      return winId;
+    }
+  });
+
 OS.registerApp("tools", {
     launch(){
       const html = `
@@ -1369,12 +1787,38 @@ OS.registerApp("tools", {
           <h2 class="pf-wintitle">Tools</h2>
           <div class="pf-windesc">Utilities for files & workflow (converter, validator, compressor).</div>
           <div class="pf-grid" style="margin-top:12px;">
-            <button class="pf-card" type="button" data-tool="compress"><div class="pf-card__meta"><div class="pf-card__title">Image Compressor</div><div class="pf-card__price">Coming next</div></div></button>
-            <button class="pf-card" type="button" data-tool="convert"><div class="pf-card__meta"><div class="pf-card__title">File Converter</div><div class="pf-card__price">Coming next</div></div></button>
-            <button class="pf-card" type="button" data-tool="validate"><div class="pf-card__meta"><div class="pf-card__title">Format Validator</div><div class="pf-card__price">Coming next</div></div></button>
+            <button class="pf-card pf-toolcard" type="button" data-openapp="compressor" aria-label="Open Image Compressor">
+              <div class="pf-card__meta pf-toolcard__meta">
+                <div class="pf-toolicon" aria-hidden="true"><span class="pf-toolicon__glyph">🗜️</span></div>
+                <div class="pf-toolcard__text">
+                  <div class="pf-card__title">Image Compressor</div>
+                  <div class="pf-card__price">Compress JPG/PNG/WEBP locally.</div>
+                </div>
+              </div>
+            </button>
+            <button class="pf-card pf-toolcard" type="button" disabled aria-label="File Converter (coming soon)">
+              <div class="pf-card__meta pf-toolcard__meta">
+                <div class="pf-toolicon pf-toolicon--disabled" aria-hidden="true"><span class="pf-toolicon__glyph">🔁</span></div>
+                <div class="pf-toolcard__text">
+                  <div class="pf-card__title">File Converter</div>
+                  <div class="pf-card__price">Coming next</div>
+                </div>
+              </div>
+            </button>
+            <button class="pf-card pf-toolcard" type="button" disabled aria-label="Format Validator (coming soon)">
+              <div class="pf-card__meta pf-toolcard__meta">
+                <div class="pf-toolicon pf-toolicon--disabled" aria-hidden="true"><span class="pf-toolicon__glyph">✅</span></div>
+                <div class="pf-toolcard__text">
+                  <div class="pf-card__title">Format Validator</div>
+                  <div class="pf-card__price">Coming next</div>
+                </div>
+              </div>
+            </button>
           </div>
         </div>`;
       const winId = createWindow({ title:"Tools", html, appId:"tools" });
+      const b = windows.get(winId)?.el?.querySelector("[data-body]");
+      if (b) bindWindowInternalActions(b);
       return winId;
     }
   });
