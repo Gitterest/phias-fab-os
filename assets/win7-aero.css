@@ -1,0 +1,916 @@
+/* ===============================
+   Windows 7 Aero Glass Styling
+   Authentic Windows 7 visual fidelity
+   =============================== */
+
+:root {
+  /* Windows 7 Aero authentic color palette */
+  --win7-glass-base: rgba(240, 248, 255, 0.92);
+  --win7-glass-blue-tint: rgba(207, 232, 255, 0.85);
+  --win7-titlebar-top: #e8f4ff;
+  --win7-titlebar-mid: #cfe8ff;
+  --win7-titlebar-bottom: #a8d4ff;
+  --win7-taskbar-glass: rgba(43, 87, 151, 0.75);
+  --win7-taskbar-light: rgba(79, 129, 189, 0.8);
+  --win7-border-glow: rgba(255, 255, 255, 0.5);
+  --win7-inner-glow: rgba(255, 255, 255, 0.6);
+  --win7-shadow-aero: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  --win7-text-dark: #003366;
+  --win7-text-light: rgba(255, 255, 255, 0.98);
+}
+
+/* ===============================
+   WINDOWS - Authentic Aero Glass
+   =============================== */
+
+.pf-win {
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.1) !important;
+  background: 
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.4) 0%, transparent 60%),
+    linear-gradient(to bottom, 
+      rgba(240, 248, 255, 0.95) 0%,
+      rgba(230, 242, 255, 0.9) 50%,
+      rgba(220, 238, 255, 0.88) 100%
+    ) !important;
+  backdrop-filter: blur(10px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+.pf-win::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  z-index: 1 !important;
+}
+
+/* Window title bar - Windows 7 light gradient with glow */
+.pf-win__bar {
+  height: 30px !important;
+  background: linear-gradient(to bottom, 
+    var(--win7-titlebar-top) 0%,
+    var(--win7-titlebar-mid) 40%,
+    var(--win7-titlebar-bottom) 100%
+  ) !important;
+  border-bottom: 1px solid rgba(168, 212, 255, 0.6) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 2px 1px rgba(255, 255, 255, 0.4),
+    0 1px 0 rgba(0, 0, 0, 0.05) !important;
+  padding: 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  position: relative !important;
+}
+
+.pf-win__bar::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 20%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0.6) 80%,
+    transparent 100%
+  ) !important;
+  pointer-events: none !important;
+}
+
+.pf-win__title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--win7-text-dark) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  flex: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Window controls - Windows 7 style */
+.pf-win__controls {
+  display: flex !important;
+  gap: 3px !important;
+}
+
+.pf-win__ctrl {
+  width: 26px !important;
+  height: 20px !important;
+  border-radius: 3px !important;
+  border: 1px solid rgba(90, 155, 214, 0.3) !important;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(240, 248, 255, 0.4) 50%,
+    rgba(200, 230, 255, 0.3) 100%
+  ) !important;
+  color: var(--win7-text-dark) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+    0 1px 1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.12s ease !important;
+  position: relative !important;
+}
+
+.pf-win__ctrl::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-radius: 3px 3px 0 0 !important;
+}
+
+.pf-win__ctrl:hover {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(240, 248, 255, 0.6) 50%,
+    rgba(220, 240, 255, 0.5) 100%
+  ) !important;
+  border-color: rgba(90, 155, 214, 0.5) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pf-win__ctrl:active {
+  background: linear-gradient(to bottom,
+    rgba(200, 230, 255, 0.4) 0%,
+    rgba(220, 240, 255, 0.35) 50%,
+    rgba(240, 248, 255, 0.3) 100%
+  ) !important;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.pf-win__ctrl--close {
+  background: linear-gradient(to bottom,
+    rgba(255, 220, 220, 0.6) 0%,
+    rgba(255, 180, 180, 0.5) 50%,
+    rgba(255, 140, 140, 0.4) 100%
+  ) !important;
+  border-color: rgba(220, 120, 120, 0.4) !important;
+}
+
+.pf-win__ctrl--close:hover {
+  background: linear-gradient(to bottom,
+    rgba(255, 240, 240, 0.8) 0%,
+    rgba(255, 200, 200, 0.7) 50%,
+    rgba(255, 160, 160, 0.6) 100%
+  ) !important;
+  border-color: rgba(240, 140, 140, 0.6) !important;
+}
+
+/* Window body - light translucent content */
+.pf-win__body {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  padding: 12px !important;
+  height: calc(100% - 30px) !important;
+  overflow: auto !important;
+}
+
+/* Maximized window state */
+.pf-win--maximized {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
+.pf-win--maximized .pf-win__bar {
+  border-radius: 0 !important;
+}
+
+/* Active window state */
+.pf-win--active {
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 10px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 0 0 2px rgba(168, 212, 255, 0.2) !important;
+}
+
+.pf-win--active .pf-win__bar {
+  background: linear-gradient(to bottom, 
+    #e8f4ff 0%,
+    #d0e8ff 40%,
+    #b8dcff 100%
+  ) !important;
+}
+
+/* ===============================
+   TASKBAR - Windows 7 Light Blue Glass
+   =============================== */
+
+.pf-taskbar {
+  height: 40px !important;
+  background: linear-gradient(to top,
+    rgba(43, 87, 151, 0.85) 0%,
+    rgba(79, 129, 189, 0.8) 50%,
+    rgba(90, 155, 214, 0.75) 100%
+  ) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 2px 2px rgba(255, 255, 255, 0.1),
+    0 -2px 8px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  padding: 0 6px !important;
+  gap: 4px !important;
+  position: relative !important;
+}
+
+.pf-taskbar::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Start button - Windows 7 orb style */
+.pf-startbtn {
+  height: 36px !important;
+  border-radius: 4px 4px 0 0 !important;
+  padding: 0 14px 0 10px !important;
+  gap: 8px !important;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(240, 248, 255, 0.2) 50%,
+    rgba(220, 238, 255, 0.15) 100%
+  ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-bottom: none !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 2px 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.15s ease !important;
+  position: relative !important;
+}
+
+.pf-startbtn::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: -1px !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.pf-startbtn:hover {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(240, 248, 255, 0.3) 50%,
+    rgba(220, 238, 255, 0.25) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 2px 2px rgba(255, 255, 255, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.pf-startbtn--active {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(240, 248, 255, 0.35) 50%,
+    rgba(220, 238, 255, 0.3) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.pf-startmark {
+  width: 22px !important;
+  height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 30% 30%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.6) 30%,
+    rgba(200, 230, 255, 0.4) 60%,
+    rgba(150, 200, 255, 0.3) 100%
+  ) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  color: var(--win7-text-dark) !important;
+  font-weight: 900 !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  position: relative !important;
+}
+
+.pf-startmark::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  right: 2px !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-radius: 50% !important;
+}
+
+.pf-starttext {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Task buttons - Windows 7 pinned style with glow */
+.pf-taskbtn {
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--win7-text-light) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.15s ease !important;
+}
+
+.pf-taskbtn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pf-task {
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 1px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.15s ease !important;
+}
+
+.pf-task[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 2px 3px rgba(255, 255, 255, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 16px rgba(255, 255, 255, 0.2) !important;
+}
+
+.pf-task[aria-selected="true"] .pf-task__title {
+  font-weight: 600 !important;
+}
+
+.pf-task:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.pf-task__title {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.pf-task__min {
+  opacity: 0.7 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* ===============================
+   START MENU - Aero Glass
+   =============================== */
+
+.pf-startmenu {
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: 
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
+    linear-gradient(to bottom,
+      rgba(240, 248, 255, 0.95) 0%,
+      rgba(230, 242, 255, 0.9) 50%,
+      rgba(220, 238, 255, 0.88) 100%
+    ) !important;
+  backdrop-filter: blur(14px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.pf-startmenu__right {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.pf-menu__btn {
+  border-radius: 3px !important;
+  transition: all 0.12s ease !important;
+}
+
+.pf-menu__btn:hover,
+.pf-menu__btn:focus {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(240, 248, 255, 0.25) 100%
+  ) !important;
+  outline: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.pf-quick__btn {
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  transition: all 0.12s ease !important;
+}
+
+.pf-quick__btn:hover {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(240, 248, 255, 0.25) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ===============================
+   BUTTONS - Windows 7 Style
+   =============================== */
+
+.pf-winbtn {
+  border-radius: 3px !important;
+  border: 1px solid rgba(90, 155, 214, 0.5) !important;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(240, 248, 255, 0.4) 50%,
+    rgba(200, 230, 255, 0.3) 100%
+  ) !important;
+  color: var(--win7-text-dark) !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.12s ease !important;
+  padding: 6px 14px !important;
+}
+
+.pf-winbtn:hover {
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.7) 0%,
+    rgba(240, 248, 255, 0.6) 50%,
+    rgba(220, 240, 255, 0.5) 100%
+  ) !important;
+  border-color: rgba(90, 155, 214, 0.7) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pf-winbtn:active {
+  background: linear-gradient(to bottom,
+    rgba(200, 230, 255, 0.4) 0%,
+    rgba(220, 240, 255, 0.35) 50%,
+    rgba(240, 248, 255, 0.3) 100%
+  ) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pf-winbtn--ghost {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.pf-winbtn--ghost:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ===============================
+   INPUTS - Windows 7 Style
+   =============================== */
+
+.pf-wininput {
+  border-radius: 3px !important;
+  border: 1px solid rgba(90, 155, 214, 0.4) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: var(--win7-text-dark) !important;
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  padding: 5px 8px !important;
+}
+
+.pf-wininput:focus {
+  border-color: rgba(90, 155, 214, 0.7) !important;
+  background: rgba(255, 255, 255, 1) !important;
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 0 0 2px rgba(90, 155, 214, 0.25),
+    0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  outline: none !important;
+}
+
+/* ===============================
+   PRODUCT CARDS - Windows Explorer Style
+   =============================== */
+
+.pf-card {
+  border-radius: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: 
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(240, 248, 255, 0.15) 50%,
+      rgba(230, 242, 255, 0.12) 100%
+    ) !important;
+  backdrop-filter: blur(8px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.pf-card::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.4) !important;
+  z-index: 1 !important;
+}
+
+.pf-card:hover {
+  border-color: rgba(168, 212, 255, 0.7) !important;
+  background: 
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(240, 248, 255, 0.27) 50%,
+      rgba(230, 242, 255, 0.24) 100%
+    ) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(168, 212, 255, 0.5),
+    0 0 12px rgba(168, 212, 255, 0.25) !important;
+  transform: translateY(-2px) scale(1.01) !important;
+}
+
+.pf-card:active {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.pf-card img {
+  border-radius: 2px 2px 0 0 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  transition: transform 0.2s ease !important;
+}
+
+.pf-card:hover img {
+  transform: scale(1.02) !important;
+}
+
+.pf-card__meta {
+  background: 
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(240, 248, 255, 0.08) 100%
+    ) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  padding: 10px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.pf-card__title {
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  margin-bottom: 4px !important;
+}
+
+.pf-card__price {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 12px !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ===============================
+   GRID - Windows Explorer Layout
+   =============================== */
+
+.pf-grid {
+  gap: 14px !important;
+  padding: 8px !important;
+}
+
+/* Explorer-style list view option (future enhancement) */
+.pf-grid--list {
+  grid-template-columns: 1fr !important;
+  gap: 2px !important;
+}
+
+.pf-grid--list .pf-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 6px !important;
+}
+
+.pf-grid--list .pf-card img {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 2px !important;
+  margin-right: 12px !important;
+}
+
+/* ===============================
+   WINDOW CONTENT AREAS
+   =============================== */
+
+.pf-wincontent {
+  color: var(--win7-text-light) !important;
+}
+
+.pf-wintitle {
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.pf-windesc {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.pf-winprice {
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.pf-winproduct {
+  gap: 16px !important;
+}
+
+.pf-winproduct__media img {
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.pf-winfooter {
+  color: rgba(255, 255, 255, 0.75) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding-top: 12px !important;
+}
+
+.pf-winheader {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 16px !important;
+}
+
+/* ===============================
+   CLOCK
+   =============================== */
+
+.pf-clock {
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  font-weight: 500 !important;
+}
+
+/* ===============================
+   BADGE
+   =============================== */
+
+.pf-badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: var(--win7-text-light) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===============================
+   DESKTOP ICONS - Windows 7 Style
+   =============================== */
+
+.pf-icon {
+  border-radius: 3px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+  position: relative !important;
+}
+
+.pf-icon::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.pf-icon:hover::before,
+.pf-icon:focus::before {
+  opacity: 1 !important;
+}
+
+.pf-icon:hover,
+.pf-icon:focus {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+.pf-icon:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.pf-iconimg {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.pf-iconimg img {
+  border-radius: 3px !important;
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: transform 0.2s ease !important;
+}
+
+.pf-icon:hover .pf-iconimg img {
+  transform: scale(1.05) !important;
+}
+
+.pf-iconlabel {
+  position: relative !important;
+  z-index: 1 !important;
+  text-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(0, 0, 0, 0.3) !important;
+  transition: color 0.2s ease !important;
+}
+
+.pf-icon:hover .pf-iconlabel {
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+/* ===============================
+   FLYOUT MENUS
+   =============================== */
+
+.pf-flyout {
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  background: 
+    radial-gradient(ellipse at top, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
+    linear-gradient(to bottom,
+      rgba(240, 248, 255, 0.95) 0%,
+      rgba(230, 242, 255, 0.9) 50%,
+      rgba(220, 238, 255, 0.88) 100%
+    ) !important;
+  backdrop-filter: blur(14px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ===============================
+   RESPONSIVE ADJUSTMENTS
+   =============================== */
+
+@media (max-width: 760px) {
+  .pf-win {
+    border-radius: 4px !important;
+  }
+  
+  .pf-win__bar {
+    height: 36px !important;
+  }
+  
+  .pf-taskbar {
+    height: 44px !important;
+  }
+}
+
+/* ===============================
+   DESKTOP BACKGROUND
+   =============================== */
+
+.pf-os {
+  background: 
+    radial-gradient(ellipse at top left, rgba(30, 60, 120, 0.3), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(20, 40, 80, 0.2), transparent 50%),
+    linear-gradient(180deg, #1a3d6f 0%, #2b5797 50%, #020b17 100%) !important;
+}
+
+.pf-wallpaper {
+  filter: saturate(1.1) contrast(1.05) brightness(0.9) !important;
+}
+
+.pf-wallpaper::after {
+  background: 
+    radial-gradient(ellipse 800px 400px at 20% 20%, rgba(255, 255, 255, 0.15), transparent 60%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5)) !important;
+}
+
+.pf-desktop {
+  inset: 0 0 40px 0 !important;
+}
+
+/* ===============================
+   REDUCE MOTION
+   =============================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-win,
+  .pf-card,
+  .pf-winbtn,
+  .pf-win__ctrl,
+  .pf-task,
+  .pf-taskbtn,
+  .pf-startbtn,
+  .pf-menu__btn,
+  .pf-quick__btn,
+  .pf-icon {
+    transition: none !important;
+  }
+}

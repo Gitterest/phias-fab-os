@@ -3,11 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ page_title }}{% if current_tags %} – {{ current_tags | join: ', ' }}{% endif %}{% if current_page != 1 %} – Page {{ current_page }}{% endif %}{% unless page_title contains shop.name %} – {{ shop.name }}{% endunless %}</title>
+    <title>
+      {{ page_title }}
+      {% if current_tags %} – {{ current_tags | join: ', ' }}{% endif %}
+      {% if current_page != 1 %} – Page {{ current_page }}{% endif %}
+      {% unless page_title contains shop.name %} – {{ shop.name }}{% endunless %}
+    </title>
     {{ content_for_header }}
     {{ 'desktop-os.css' | asset_url | stylesheet_tag }}
     {{ 'pf-badges.css' | asset_url | stylesheet_tag }}
     <script src="{{ 'desktop-os.js' | asset_url }}" defer></script>
+    <link rel="stylesheet" href="{{ "win7-aero.css" | asset_url }}">
   </head>
   <body>
     {{ content_for_layout }}

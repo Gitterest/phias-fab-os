@@ -1,4 +1,4 @@
-# Phia’s Fab OS – v2.2.2 ABCD (Integrated)
+# Phia’s Fab OS – v2.3.0 ABCD+ (Win7 Visual + Apps + Studio Upgrade)
 
 Includes:
 A) File-type badges on product windows (tags → badges)
@@ -24,3 +24,10 @@ lic-personal, lic-commercial, lic-extended
 
 ## Security
 Protected routes (/account, /checkout, /cart, etc.) always open normally (never fetched into windows).
+
+
+## v2.3.0 additions
+- Windows 7 (Aero) visual pass (taskbar, start menu, window chrome)
+- Added Maximize + Win7-style snap (drag to edges)
+- Added File Manager + Settings apps
+- Upgraded Studio Text→SVG into a richer SVG designer (fonts, stroke/fill, letter spacing, curve text, presets)

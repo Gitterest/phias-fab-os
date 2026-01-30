@@ -71,10 +71,17 @@
   tick(); setInterval(tick, 10_000);
 
   // ---- Start menu (Windows 7 cascading)
-  function closeStart() { startMenu?.setAttribute("hidden",""); }
-  function openStart() { startMenu?.removeAttribute("hidden"); }
+  function closeStart() { 
+    startMenu?.setAttribute("hidden","");
+    startBtn?.classList.remove("pf-startbtn--active");
+  }
+  function openStart() { 
+    startMenu?.removeAttribute("hidden");
+    startBtn?.classList.add("pf-startbtn--active");
+  }
   startBtn?.addEventListener("click", (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!startMenu) return;
     const hidden = startMenu.hasAttribute("hidden");
     hidden ? openStart() : closeStart();
@@ -105,16 +112,28 @@
     closeStart();
   });
 
+  // Close start menu on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && startMenu && !startMenu.hasAttribute("hidden")) {
+      closeStart();
+    }
+  });
+
   // ---- OS core: windows + taskbar
   let z = 2001;
   let seq = 0;
-  const windows = new Map(); // id -> {el, taskEl, minimized, url, title}
+  const windows = new Map(); // id -> {el, taskEl, minimized, maximized, url, title, restoreState}
 
   function setActive(winId){
     windows.forEach((w, id) => {
-      w.el.style.zIndex = String(id === winId ? ++z : w.el.style.zIndex);
-      w.taskEl?.setAttribute("aria-selected", id === winId ? "true" : "false");
-      w.el.classList.toggle("pf-win--active", id === winId);
+      if (id === winId) {
+        w.el.style.zIndex = String(++z);
+        w.taskEl?.setAttribute("aria-selected", "true");
+        w.el.classList.add("pf-win--active");
+      } else {
+        w.taskEl?.setAttribute("aria-selected", "false");
+        w.el.classList.remove("pf-win--active");
+      }
     });
   }
 
@@ -125,35 +144,142 @@
     li.setAttribute("tabindex","0");
     li.setAttribute("aria-selected","true");
     li.innerHTML = `<span class="pf-task__title">${escapeHtml(title)}</span><span class="pf-task__min">—</span>`;
-    li.addEventListener("click", () => toggleMinimize(winId));
-    li.addEventListener("keydown", (e) => { if (e.key === "Enter") toggleMinimize(winId); });
+    li.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const w = windows.get(winId);
+      if (!w) return;
+      if (w.minimized) {
+        restoreWindow(winId);
+      } else if (w.el.classList.contains("pf-win--active")) {
+        minimizeWindow(winId);
+      } else {
+        setActive(winId);
+      }
+    });
+    li.addEventListener("keydown", (e) => { 
+      if (e.key === "Enter") {
+        const w = windows.get(winId);
+        if (w?.minimized) restoreWindow(winId);
+        else if (w?.el.classList.contains("pf-win--active")) minimizeWindow(winId);
+        else setActive(winId);
+      }
+    });
     tasksEl?.appendChild(li);
     return li;
+  }
+
+  function minimizeWindow(winId){
+    const w = windows.get(winId);
+    if (!w || w.minimized) return;
+    w.minimized = true;
+    w.el.style.transition = "transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.2s ease";
+    const rect = w.el.getBoundingClientRect();
+    const taskRect = w.taskEl.getBoundingClientRect();
+    const targetX = taskRect.left + taskRect.width / 2 - rect.width / 2;
+    const targetY = taskRect.top - rect.height;
+    const scaleX = taskRect.width / rect.width;
+    const scaleY = 0.1;
+    
+    w.el.style.transformOrigin = "top center";
+    w.el.style.transform = `translate(${targetX - rect.left}px, ${targetY - rect.top}px) scale(${scaleX}, ${scaleY})`;
+    w.el.style.opacity = "0";
+    
+    setTimeout(() => {
+      w.el.setAttribute("aria-hidden","true");
+      w.el.style.transition = "";
+      w.el.style.transform = "";
+      w.el.style.opacity = "";
+      w.el.style.transformOrigin = "";
+      w.taskEl?.setAttribute("aria-selected","false");
+    }, 200);
+  }
+
+  function restoreWindow(winId){
+    const w = windows.get(winId);
+    if (!w || !w.minimized) return;
+    w.minimized = false;
+    w.el.removeAttribute("aria-hidden");
+    w.el.style.transition = "transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.2s ease";
+    w.el.style.opacity = "0";
+    w.el.style.transform = "scale(0.95)";
+    
+    requestAnimationFrame(() => {
+      w.el.style.opacity = "1";
+      w.el.style.transform = "scale(1)";
+      setTimeout(() => {
+        w.el.style.transition = "";
+        w.el.style.opacity = "";
+        w.el.style.transform = "";
+        setActive(winId);
+      }, 200);
+    });
   }
 
   function toggleMinimize(winId){
     const w = windows.get(winId);
     if (!w) return;
     if (w.minimized) {
-      w.minimized = false;
-      w.el.removeAttribute("aria-hidden");
-      setActive(winId);
+      restoreWindow(winId);
     } else {
-      w.minimized = true;
-      w.el.setAttribute("aria-hidden","true");
-      w.taskEl?.setAttribute("aria-selected","false");
+      minimizeWindow(winId);
     }
+  }
+
+  function toggleMaximize(winId){
+    const w = windows.get(winId);
+    if (!w) return;
+    
+    if (w.maximized) {
+      // Restore
+      w.maximized = false;
+      w.el.classList.remove("pf-win--maximized");
+      w.el.removeAttribute("data-max");
+      const restore = w.restoreState;
+      w.el.style.width = restore.width;
+      w.el.style.height = restore.height;
+      w.el.style.left = restore.left;
+      w.el.style.top = restore.top;
+      w.el.style.transition = "all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)";
+      setTimeout(() => { w.el.style.transition = ""; }, 200);
+    } else {
+      // Maximize
+      w.maximized = true;
+      w.el.classList.add("pf-win--maximized");
+      w.el.setAttribute("data-max","true");
+      const rect = w.el.getBoundingClientRect();
+      w.restoreState = {
+        width: w.el.style.width || `${rect.width}px`,
+        height: w.el.style.height || `${rect.height}px`,
+        left: w.el.style.left || `${rect.left}px`,
+        top: w.el.style.top || `${rect.top}px`
+      };
+      w.el.style.transition = "all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)";
+      w.el.style.width = "calc(100vw - 12px)";
+      w.el.style.height = "calc(100vh - 52px)";
+      w.el.style.left = "6px";
+      w.el.style.top = "6px";
+      setTimeout(() => { w.el.style.transition = ""; }, 200);
+    }
+    setActive(winId);
   }
 
   function closeWindow(winId){
     const w = windows.get(winId);
     if (!w) return;
-    w.el.remove();
-    w.taskEl?.remove();
-    windows.delete(winId);
-    // activate last
-    const last = Array.from(windows.keys()).pop();
-    if (last) setActive(last);
+    
+    // Animate close
+    w.el.style.transition = "opacity 0.15s ease, transform 0.15s ease";
+    w.el.style.opacity = "0";
+    w.el.style.transform = "scale(0.95)";
+    
+    setTimeout(() => {
+      w.el.remove();
+      w.taskEl?.remove();
+      windows.delete(winId);
+      // activate last
+      const last = Array.from(windows.keys()).pop();
+      if (last) setActive(last);
+    }, 150);
   }
 
   function createWindow({ title, url, html, appId }){
@@ -171,7 +297,8 @@
         <div class="pf-win__title">${escapeHtml(safeTitle)}</div>
         <div class="pf-win__controls">
           <button class="pf-win__ctrl" type="button" data-min aria-label="Minimize" title="Minimize">—</button>
-          <button class="pf-win__ctrl pf-win__ctrl--close" type="button" data-close aria-label="Close" title="Close">✕</button>
+                    <button class="pf-win__ctrl" type="button" data-max aria-label="Maximize" title="Maximize">▢</button>
+<button class="pf-win__ctrl pf-win__ctrl--close" type="button" data-close aria-label="Close" title="Close">✕</button>
         </div>
       </div>
       <div class="pf-win__body" data-body>${html || `<div class="pf-windesc">Loading…</div>`}</div>
@@ -183,34 +310,64 @@
     el.style.left = `${left}px`;
     el.style.top  = `${top}px`;
 
+    // Initial animation state
+    el.style.opacity = "0";
+    el.style.transform = "scale(0.95) translateY(-10px)";
+    
     layer.appendChild(el);
 
     const taskEl = addTaskButton(winId, safeTitle);
-    const w = { el, taskEl, minimized:false, url:url || null, title:safeTitle, appId:appId || null };
+    const w = { el, taskEl, minimized:false, maximized:false, url:url || null, title:safeTitle, appId:appId || null, restoreState:null };
     windows.set(winId, w);
     setActive(winId);
 
+    // Animate window in
+    requestAnimationFrame(() => {
+      el.style.transition = "opacity 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)";
+      el.style.opacity = "1";
+      el.style.transform = "scale(1) translateY(0)";
+      setTimeout(() => {
+        el.style.transition = "";
+      }, 200);
+    });
+
     el.addEventListener("mousedown", () => setActive(winId));
-    el.querySelector("[data-min]")?.addEventListener("click", () => toggleMinimize(winId));
-    el.querySelector("[data-close]")?.addEventListener("click", () => closeWindow(winId));
+    el.querySelector("[data-min]")?.addEventListener("click", (e) => { e.stopPropagation(); toggleMinimize(winId); });
+    el.querySelector("[data-max]")?.addEventListener("click", (e) => { e.stopPropagation(); toggleMaximize(winId); });
+    el.querySelector("[data-close]")?.addEventListener("click", (e) => { e.stopPropagation(); closeWindow(winId); });
 
     // drag
     const bar = el.querySelector("[data-dragbar]");
-    let dragging = false, sx=0, sy=0, sl=0, st=0;
+    let dragging = false, sx=0, sy=0, sl=0, st=0, doubleClickTimer = null;
 
     bar?.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".pf-win__controls")) return;
       dragging = true;
       const r = el.getBoundingClientRect();
       sx = e.clientX; sy = e.clientY;
       sl = r.left; st = r.top;
       e.preventDefault();
     });
+
+    bar?.addEventListener("dblclick", (e) => {
+      if (e.target.closest(".pf-win__controls")) return;
+      toggleMaximize(winId);
+    });
+
     window.addEventListener("mousemove", (e) => {
       if (!dragging) return;
+      const w = windows.get(winId);
+      if (w?.maximized) {
+        // If dragging from maximized, restore first
+        toggleMaximize(winId);
+        const r = el.getBoundingClientRect();
+        sl = r.left; st = r.top;
+        sx = e.clientX; sy = e.clientY;
+      }
       const dx = e.clientX - sx;
       const dy = e.clientY - sy;
-      el.style.left = `${Math.max(6, sl + dx)}px`;
-      el.style.top  = `${Math.max(6, st + dy)}px`;
+      el.style.left = `${Math.max(6, Math.min(sl + dx, window.innerWidth - 50))}px`;
+      el.style.top  = `${Math.max(6, Math.min(st + dy, window.innerHeight - 50))}px`;
     });
     window.addEventListener("mouseup", () => dragging = false);
 
@@ -313,15 +470,24 @@
   }
 
   let lastClick = 0;
+  let lastClickTarget = null;
   root.querySelectorAll(".pf-icon").forEach(icon => {
-    icon.addEventListener("click", () => {
+    icon.addEventListener("click", (e) => {
       const now = Date.now();
-      const dbl = now - lastClick < 340;
+      const sameTarget = lastClickTarget === icon;
+      const dbl = sameTarget && now - lastClick < 500;
       lastClick = now;
-      if (dbl) activateIcon(icon);
+      lastClickTarget = icon;
+      if (dbl) {
+        activateIcon(icon);
+        lastClickTarget = null;
+      }
     });
     icon.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") activateIcon(icon);
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        activateIcon(icon);
+      }
     });
   });
 
@@ -422,7 +588,121 @@
     }
   });
 
-  // The Support app points to the contact page.  The legacy /pages/support
+  
+  OS.registerApp("files", {
+    launch(ctx){
+      const html = `
+        <div class="pf-wincontent">
+          <h2 class="pf-wintitle">File Manager</h2>
+          <div class="pf-windesc">Browse by file type, compatibility, and licenses. (Storefront-powered)</div>
+
+          <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;margin-top:12px;">
+            <button class="pf-winbtn" type="button" data-open="/collections/all?filter.p.tag=file-svg" data-title="SVG Files">SVG</button>
+            <button class="pf-winbtn" type="button" data-open="/collections/all?filter.p.tag=file-stl" data-title="STL Files">STL</button>
+            <button class="pf-winbtn" type="button" data-open="/collections/all?filter.p.tag=file-pdf" data-title="PDF Files">PDF</button>
+            <button class="pf-winbtn" type="button" data-open="/collections/all?filter.p.tag=file-bundle" data-title="Bundles">Bundles</button>
+            <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all" data-title="All Files">All</button>
+          </div>
+
+          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <div class="pf-windesc" style="margin-bottom:10px;">Compatibility</div>
+              <div class="pf-winrow" style="gap:8px;flex-wrap:wrap;">
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=compat-cricut" data-title="Cricut Compatible">Cricut</button>
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=compat-silhouette" data-title="Silhouette Compatible">Silhouette</button>
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=compat-3dprint" data-title="3D Print Ready">3D Print</button>
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=compat-cnc" data-title="CNC Ready">CNC</button>
+              </div>
+            </div>
+
+            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <div class="pf-windesc" style="margin-bottom:10px;">Licenses</div>
+              <div class="pf-winrow" style="gap:8px;flex-wrap:wrap;">
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=lic-personal" data-title="Personal License">Personal</button>
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=lic-commercial" data-title="Commercial License">Commercial</button>
+                <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/collections/all?filter.p.tag=lic-extended" data-title="Extended License">Extended</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <div class="pf-windesc">Purchased downloads are typically shown in your order details. Use Account → Orders for exact download links.</div>
+            <div class="pf-winrow" style="gap:10px;margin-top:10px;flex-wrap:wrap;">
+              <button class="pf-winbtn" type="button" data-open="/account" data-title="Account">Open Account</button>
+              <button class="pf-winbtn pf-winbtn--ghost" type="button" data-open="/account/orders" data-title="Orders">Open Orders</button>
+            </div>
+          </div>
+        </div>
+      `;
+      const w = createWindow({ title: ctx.title || "File Manager", html, appId:"files" });
+      w.el.addEventListener("click", (e)=>{
+        const btn = e.target.closest("[data-open]");
+        if (!btn) return;
+        openUrl(btn.getAttribute("data-open"), btn.getAttribute("data-title") || "Window");
+      });
+      return w;
+    }
+  });
+
+  OS.registerApp("settings", {
+    launch(){
+      const html = `
+        <div class="pf-wincontent">
+          <h2 class="pf-wintitle">Settings</h2>
+          <div class="pf-windesc">Local OS preferences stored in your browser (does not change Shopify theme settings).</div>
+
+          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <label class="pf-winlabel">UI Scale</label>
+              <input class="pf-wininput" type="range" min="90" max="120" value="100" data-ui-scale>
+              <div class="pf-windesc" style="margin-top:6px;">Tip: 100% is default.</div>
+            </div>
+            <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+              <label class="pf-winlabel">Reduce motion</label>
+              <select class="pf-wininput" data-reduce-motion>
+                <option value="system">System default</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+              <div class="pf-windesc" style="margin-top:6px;">Overrides system preference for this site.</div>
+            </div>
+          </div>
+
+          <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pf-winbtn" type="button" data-reset>Reset to defaults</button>
+          </div>
+        </div>
+      `;
+      const w = createWindow({ title:"Settings", html, appId:"settings" });
+
+      // apply + persist settings
+      const key = "pf_os_settings_v1";
+      const load = () => { try{ return JSON.parse(localStorage.getItem(key) || "{}"); }catch(e){ return {}; } };
+      const save = (obj) => localStorage.setItem(key, JSON.stringify(obj));
+
+      const state = Object.assign({ uiScale: 100, reduceMotion: "system" }, load());
+
+      const scale = w.el.querySelector("[data-ui-scale]");
+      const rm = w.el.querySelector("[data-reduce-motion]");
+      const reset = w.el.querySelector("[data-reset]");
+
+      function apply(){
+        document.documentElement.style.setProperty("--pf-ui-scale", String(state.uiScale/100));
+        if (state.reduceMotion === "on") document.documentElement.classList.add("pf-reduce-motion");
+        else if (state.reduceMotion === "off") document.documentElement.classList.remove("pf-reduce-motion");
+        else document.documentElement.classList.remove("pf-reduce-motion");
+      }
+
+      if (scale){ scale.value = String(state.uiScale); scale.addEventListener("input", ()=>{ state.uiScale = Number(scale.value); apply(); save(state); }); }
+      if (rm){ rm.value = state.reduceMotion; rm.addEventListener("change", ()=>{ state.reduceMotion = rm.value; apply(); save(state); }); }
+      if (reset){ reset.addEventListener("click", ()=>{ state.uiScale = 100; state.reduceMotion = "system"; apply(); save(state); if(scale) scale.value="100"; if(rm) rm.value="system"; }); }
+
+      apply();
+      return w;
+    }
+  });
+
+// The Support app points to the contact page.  The legacy /pages/support
   // URL is deprecated on some shops; using /pages/contact ensures a page
   // always exists.  The optional ctx.url can override this default.
   OS.registerApp("support", {
@@ -455,27 +735,102 @@
             ${productUrl ? `<button class="pf-winbtn" type="button" data-open-url="${productUrl}" data-title="${escapeHtml(productTitle)}">Open Product</button>` : ``}
           </div>
 
+          
           <div data-panel="text" style="margin-top:12px;">
-            <div class="pf-windesc">Generate a simple SVG with custom text (great for quick previews).</div>
-            <div class="pf-winrow" style="gap:10px;align-items:flex-end;">
-              <div style="flex:1;min-width:180px;">
-                <label class="pf-winlabel">Text</label>
-                <input class="pf-wininput" type="text" value="${productUrl ? escapeHtml(productTitle) : "PHIA'S FAB"}" data-text>
+            <div class="pf-windesc">Design text-based SVGs with quick styling controls, export presets, and one-click download.</div>
+
+            <div style="margin-top:10px;display:grid;grid-template-columns: 1.2fr .8fr; gap:12px; align-items:start;">
+              <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+                <div class="pf-winrow" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                  <div style="flex:1;min-width:220px;">
+                    <label class="pf-winlabel">Text</label>
+                    <input class="pf-wininput" type="text" value="${productUrl ? escapeHtml(productTitle) : "PHIA'S FAB"}" data-text>
+                  </div>
+                  <div style="width:160px;min-width:140px;">
+                    <label class="pf-winlabel">Font</label>
+                    <select class="pf-wininput" data-font>
+                      <option value="Arial">Arial</option>
+                      <option value="Segoe UI">Segoe UI</option>
+                      <option value="Verdana">Verdana</option>
+                      <option value="Trebuchet MS">Trebuchet MS</option>
+                      <option value="Impact">Impact</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                    </select>
+                  </div>
+                  <div style="width:120px;">
+                    <label class="pf-winlabel">Font size</label>
+                    <input class="pf-wininput" type="number" value="96" min="10" max="400" step="1" data-size>
+                  </div>
+                </div>
+
+                <div class="pf-winrow" style="gap:10px;margin-top:10px;align-items:flex-end;flex-wrap:wrap;">
+                  <div style="width:140px;">
+                    <label class="pf-winlabel">Fill</label>
+                    <input class="pf-wininput" type="color" value="#ffffff" data-fill>
+                  </div>
+                  <div style="width:140px;">
+                    <label class="pf-winlabel">Stroke</label>
+                    <input class="pf-wininput" type="color" value="#00e5ff" data-stroke>
+                  </div>
+                  <div style="width:120px;">
+                    <label class="pf-winlabel">Stroke width</label>
+                    <input class="pf-wininput" type="number" value="3" min="0" max="30" step="0.5" data-strokew>
+                  </div>
+                  <div style="width:140px;">
+                    <label class="pf-winlabel">Letter spacing</label>
+                    <input class="pf-wininput" type="number" value="0" min="-20" max="60" step="0.5" data-spacing>
+                  </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                  <label class="pf-winlabel">Curve (0 = straight)</label>
+                  <input class="pf-wininput" type="range" min="-100" max="100" value="0" data-curve>
+                  <div class="pf-windesc" style="margin-top:6px;">Negative curves downward, positive curves upward.</div>
+                </div>
+
+                <div class="pf-winrow" style="gap:10px;margin-top:12px;align-items:flex-end;flex-wrap:wrap;">
+                  <div style="width:160px;">
+                    <label class="pf-winlabel">Canvas preset</label>
+                    <select class="pf-wininput" data-preset>
+                      <option value="12x12">12x12 in</option>
+                      <option value="8.5x11">8.5x11 in</option>
+                      <option value="A4">A4</option>
+                      <option value="square">Square 2000px</option>
+                      <option value="wide">Wide 3000x1500</option>
+                    </select>
+                  </div>
+                  <div style="width:150px;">
+                    <label class="pf-winlabel">Padding</label>
+                    <input class="pf-wininput" type="number" value="120" min="0" max="800" step="5" data-pad>
+                  </div>
+                  <div style="width:160px;">
+                    <label class="pf-winlabel">Background</label>
+                    <input class="pf-wininput" type="color" value="#000000" data-bg>
+                  </div>
+                  <button class="pf-winbtn" type="button" data-generate>Generate</button>
+                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-download disabled>Download SVG</button>
+                </div>
+
+                <div style="margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.04);">
+                  <div class="pf-windesc" style="margin-bottom:6px;">Preview</div>
+                  <div data-preview style="overflow:auto;max-height:320px;"></div>
+                </div>
               </div>
-              <div style="width:120px;">
-                <label class="pf-winlabel">Size</label>
-                <input class="pf-wininput" type="number" value="72" min="10" max="200" data-size>
+
+              <div style="border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);">
+                <div class="pf-windesc">Quick actions</div>
+                <div class="pf-winrow" style="gap:10px;flex-wrap:wrap;margin-top:10px;">
+                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-save-preset>Save preset</button>
+                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-load-preset>Load preset</button>
+                  <button class="pf-winbtn pf-winbtn--ghost" type="button" data-copy>Copy SVG</button>
+                </div>
+                <div class="pf-windesc" style="margin-top:12px;">Saved presets are stored locally in this browser.</div>
               </div>
-              <button class="pf-winbtn" type="button" data-generate>Generate</button>
-              <button class="pf-winbtn pf-winbtn--ghost" type="button" data-download disabled>Download SVG</button>
-            </div>
-            <div style="margin-top:12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.04);">
-              <div class="pf-windesc" style="margin-bottom:6px;">Preview</div>
-              <div data-preview style="overflow:auto;max-height:280px;"></div>
             </div>
           </div>
-
-          <div data-panel="svg" hidden style="margin-top:12px;">
+<div data-panel="svg" hidden style="margin-top:12px;">
             <div class="pf-windesc">Paste SVG markup to preview it.</div>
             <textarea class="pf-wininput" style="height:160px;white-space:pre;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;" data-svginput></textarea>
             <div class="pf-winrow" style="margin-top:8px;">
@@ -522,41 +877,105 @@
         notes.value = localStorage.getItem(notesKey) || "";
         notes.addEventListener("input", () => localStorage.setItem(notesKey, notes.value));
       }
-
-      // Text -> SVG generator
+      // Text -> SVG designer (advanced)
       const tIn = body.querySelector("[data-text]");
-      const sIn = body.querySelector("[data-size]");
+      const fontSel = body.querySelector("[data-font]");
+      const sizeIn = body.querySelector("[data-size]");
+      const fillIn = body.querySelector("[data-fill]");
+      const strokeIn = body.querySelector("[data-stroke]");
+      const swIn = body.querySelector("[data-strokew]");
+      const spIn = body.querySelector("[data-spacing]");
+      const curveIn = body.querySelector("[data-curve]");
+      const presetSel = body.querySelector("[data-preset]");
+      const padIn = body.querySelector("[data-pad]");
+      const bgIn = body.querySelector("[data-bg]");
       const genBtn = body.querySelector("[data-generate]");
       const dlBtn = body.querySelector("[data-download]");
       const prev = body.querySelector("[data-preview]");
+      const btnSavePreset = body.querySelector("[data-save-preset]");
+      const btnLoadPreset = body.querySelector("[data-load-preset]");
+      const btnCopy = body.querySelector("[data-copy]");
+
       let lastSvg = "";
 
-      const makeSvg = (text, size) => {
-        const safe = escapeHtml(text);
-        const fontSize = Math.max(10, Math.min(200, Number(size) || 72));
-        const w = Math.max(600, safe.length * fontSize * 0.75);
-        const h = Math.max(200, fontSize * 2.2);
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <rect width="100%" height="100%" fill="transparent"/>
-  <text x="50%" y="52%" text-anchor="middle" dominant-baseline="middle"
-        font-family="Segoe UI, system-ui, sans-serif" font-size="${fontSize}"
-        fill="white">${safe}</text>
-</svg>`;
+      const presets = {
+        "12x12": { w: 3600, h: 3600 },
+        "8.5x11": { w: 2550, h: 3300 },
+        "A4": { w: 2480, h: 3508 },
+        "square": { w: 2000, h: 2000 },
+        "wide": { w: 3000, h: 1500 }
       };
 
-      const renderSvg = (svg) => {
+      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+      const escAttr = (s) => String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const escText = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+      function getDesign(){
+        const text = tIn?.value || "PHIA'S FAB";
+        const font = fontSel?.value || "Segoe UI";
+        const size = clamp(Number(sizeIn?.value || 96), 10, 400);
+        const fill = fillIn?.value || "#ffffff";
+        const stroke = strokeIn?.value || "#00e5ff";
+        const strokeW = clamp(Number(swIn?.value || 0), 0, 40);
+        const spacing = clamp(Number(spIn?.value || 0), -30, 120);
+        const curve = clamp(Number(curveIn?.value || 0), -100, 100);
+        const preset = presetSel?.value || "12x12";
+        const pad = clamp(Number(padIn?.value || 120), 0, 1200);
+        const bg = bgIn?.value || "#000000";
+        const dim = presets[preset] || presets["12x12"];
+        return { text, font, size, fill, stroke, strokeW, spacing, curve, preset, pad, bg, w: dim.w, h: dim.h };
+      }
+
+      function makeSvg(design){
+        const id = "pfpath_" + Math.random().toString(16).slice(2);
+        const safeText = escText(design.text);
+
+        // baseline and curve geometry
+        const cx = design.w / 2;
+        const cy = design.h / 2;
+        const amp = (design.h * 0.18) * (design.curve / 100); // amplitude
+        const x0 = design.pad;
+        const x1 = design.w - design.pad;
+
+        // Quadratic curve: M x0,cy Q cx,cy-amp x1,cy
+        const qy = cy - amp;
+        const d = `M ${x0} ${cy} Q ${cx} ${qy} ${x1} ${cy}`;
+
+        const letterSpacing = design.spacing; // px-ish
+        const textAttrs = `font-family="${escAttr(design.font)}, system-ui, sans-serif" font-size="${design.size}" letter-spacing="${letterSpacing}"`;
+
+        const bgRect = design.bg && design.bg !== "transparent"
+          ? `<rect width="100%" height="100%" fill="${escAttr(design.bg)}"/>`
+          : `<rect width="100%" height="100%" fill="transparent"/>`;
+
+        const usePath = Math.abs(design.curve) > 0.5;
+
+        const textEl = usePath
+          ? `<text ${textAttrs} fill="${escAttr(design.fill)}" ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${design.strokeW}" paint-order="stroke"` : ""}>
+               <textPath href="#${id}" startOffset="50%" text-anchor="middle">${safeText}</textPath>
+             </text>`
+          : `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+                 ${textAttrs}
+                 fill="${escAttr(design.fill)}"
+                 ${design.strokeW>0 ? `stroke="${escAttr(design.stroke)}" stroke-width="${design.strokeW}" paint-order="stroke"` : ""}>${safeText}</text>`;
+
+        const defs = usePath ? `<defs><path id="${id}" d="${d}" /></defs>` : "";
+
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${design.w}" height="${design.h}" viewBox="0 0 ${design.w} ${design.h}">
+  ${bgRect}
+  ${defs}
+  ${textEl}
+</svg>`;
+      }
+
+      function renderSvg(svg){
         lastSvg = svg;
         if (prev) prev.innerHTML = svg;
-        if (dlBtn){ dlBtn.disabled = false; }
-      };
+        if (dlBtn) dlBtn.disabled = !svg;
+      }
 
-      genBtn?.addEventListener("click", () => {
-        const svg = makeSvg(tIn?.value || "PHIA'S FAB", sIn?.value || 72);
-        renderSvg(svg);
-      });
-
-      dlBtn?.addEventListener("click", () => {
+      function downloadSvg(){
         if (!lastSvg) return;
         const blob = new Blob([lastSvg], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -567,7 +986,63 @@
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-      });
+      }
+
+      function copySvg(){
+        if (!lastSvg) return;
+        try{
+          navigator.clipboard.writeText(lastSvg);
+        }catch(e){
+          // fallback
+          const ta = document.createElement("textarea");
+          ta.value = lastSvg;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+      }
+
+      const presetKey = "pf_studio_design_preset_v1";
+      function savePreset(){
+        const d = getDesign();
+        localStorage.setItem(presetKey, JSON.stringify(d));
+      }
+      function loadPreset(){
+        try{
+          const raw = localStorage.getItem(presetKey);
+          if (!raw) return;
+          const d = JSON.parse(raw);
+          if (tIn && d.text != null) tIn.value = d.text;
+          if (fontSel && d.font) fontSel.value = d.font;
+          if (sizeIn && d.size) sizeIn.value = String(d.size);
+          if (fillIn && d.fill) fillIn.value = d.fill;
+          if (strokeIn && d.stroke) strokeIn.value = d.stroke;
+          if (swIn && d.strokeW != null) swIn.value = String(d.strokeW);
+          if (spIn && d.spacing != null) spIn.value = String(d.spacing);
+          if (curveIn && d.curve != null) curveIn.value = String(d.curve);
+          if (presetSel && d.preset) presetSel.value = d.preset;
+          if (padIn && d.pad != null) padIn.value = String(d.pad);
+          if (bgIn && d.bg) bgIn.value = d.bg;
+          const svg = makeSvg(getDesign());
+          renderSvg(svg);
+        }catch(e){}
+      }
+
+      genBtn?.addEventListener("click", () => renderSvg(makeSvg(getDesign())));
+      dlBtn?.addEventListener("click", downloadSvg);
+      btnCopy?.addEventListener("click", copySvg);
+      btnSavePreset?.addEventListener("click", savePreset);
+      btnLoadPreset?.addEventListener("click", loadPreset);
+
+      // auto-regenerate on changes (lightweight)
+      const autoInputs = [tIn,fontSel,sizeIn,fillIn,strokeIn,swIn,spIn,curveIn,presetSel,padIn,bgIn].filter(Boolean);
+      autoInputs.forEach(el => el.addEventListener("input", () => renderSvg(makeSvg(getDesign()))));
+
+      // initial render
+      renderSvg(makeSvg(getDesign()));
+
+
 
       // SVG preview panel
       const svgIn = body.querySelector("[data-svginput]");
